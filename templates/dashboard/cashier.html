@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Panel de caja | Bemba{% endblock %}
+{% block heading %}Panel de caja{% endblock %}
+{% block content %}
+{% if requests_badge %}
+<div class="alert alert-warning d-flex justify-content-between align-items-center">
+  <span>Tienes <strong>{{ requests_badge }}</strong> solicitud(es) de clientes por atender.</span>
+  <a class="btn btn-sm btn-dark" href="{% url 'requests_board' %}">Ver solicitudes</a>
+</div>
+{% endif %}
+<section class="kitchen-summary">
+  <article class="summary-chip"><span>Pedidos por cobrar</span><strong>{{ pending_count }}</strong></article>
+  <article class="summary-chip"><span>Listos para cobrar</span><strong>{{ ready_count }}</strong></article>
+  <article class="summary-chip"><span>Cobrado por ti hoy</span><strong>${{ collected_total|floatformat:0 }}</strong></article>
+  <article class="summary-chip"><span>Cobros realizados hoy</span><strong>{{ collected_count }}</strong></article>
+</section>
+
+<section class="panel">
+  <div class="panel-title">Pedidos pendientes de cobro</div>
+  <table class="table align-middle">
+    <thead><tr><th>Pedido</th><th>Mesa</th><th>Mesero</th><th>Estado</th><th class="text-end">Total</th><th></th></tr></thead>
+    <tbody>
+      {% for order in to_charge %}
+      <tr>
+        <td>#{{ order.id }}</td>
+        <td>Mesa {{ order.table.number }}</td>
+        <td>{{ order.waiter.get_full_name|default:order.waiter.username }}</td>
+        <td><span class="status-pill status-pill--{{ order.status }}">{{ order.get_status_display }}</span></td>
+        <td class="text-end">${{ order.total|floatformat:0 }}</td>
+        <td class="text-end"><a class="btn btn-sm btn-dark" href="{% url 'checkout' order.id %}">Cobrar</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-muted">No hay pedidos pendientes de cobro.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <div class="panel-title">Tus cobros de hoy</div>
+  {% if methods %}
+  <div class="mb-3">
+    {% for m in methods %}
+    <div class="receipt-row"><span>{{ m.label }} ({{ m.count }})</span><strong>${{ m.total|floatformat:0 }}</strong></div>
+    {% endfor %}
+  </div>
+  <table class="table align-middle">
+    <tbody>
+      {% for p in recent_payments %}
+      <tr><td>Pedido #{{ p.order_id }} · Mesa {{ p.order.table.number }}</td><td>{{ p.get_method_display }}</td><td class="text-end">${{ p.amount|floatformat:0 }}</td><td class="text-end">{{ p.created_at|date:'H:i' }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="text-muted">Todavía no has registrado cobros hoy.</p>
+  {% endif %}
+</section>
+{% endblock %}

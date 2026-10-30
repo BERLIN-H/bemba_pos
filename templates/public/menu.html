@@ -1,0 +1,231 @@
+{% load humanize %}<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Carta | {{ restaurant.business_name }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background: #f6f3ee; color: #1f2937; }
+    .hero { background: #1f2937; color: #fff; padding: 28px 18px 22px; }
+    .hero h1 { font-size: 1.6rem; margin: 0; font-weight: 800; }
+    .hero small { color: #cbd5e1; }
+    .table-badge { display: inline-block; margin-top: 10px; background: #fbbf24; color: #1f2937; border-radius: 999px; padding: 4px 14px; font-weight: 700; font-size: .9rem; }
+    .cats { position: sticky; top: 0; z-index: 5; background: #f6f3ee; padding: 10px 14px; overflow-x: auto; white-space: nowrap; border-bottom: 1px solid #e5e0d6; }
+    .cats a { display: inline-block; margin-right: 8px; padding: 6px 14px; border-radius: 999px; background: #fff; border: 1px solid #e5e0d6; color: #1f2937; text-decoration: none; font-weight: 600; font-size: .9rem; }
+    main { max-width: 720px; margin: 0 auto; padding: 8px 14px 110px; }
+    h2 { font-size: 1.15rem; font-weight: 800; margin: 24px 0 10px; }
+    .dish { display: flex; gap: 12px; background: #fff; border-radius: 14px; padding: 12px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    .dish img { width: 76px; height: 76px; object-fit: cover; border-radius: 10px; flex: none; }
+    .dish h3 { font-size: 1rem; margin: 0 0 2px; font-weight: 700; }
+    .dish p { margin: 0; color: #6b7280; font-size: .85rem; }
+    .price { font-weight: 800; white-space: nowrap; }
+    .add-btn { border: 0; background: #1f2937; color: #fff; border-radius: 999px; width: 34px; height: 34px; font-size: 1.2rem; line-height: 1; flex: none; align-self: center; }
+    .banner { display: none; margin: 12px 14px 0; padding: 12px 14px; border-radius: 12px; background: #fff7ed; border: 1px solid #fed7aa; font-weight: 600; }
+    .banner.ok { background: #ecfdf5; border-color: #a7f3d0; }
+    .banner.bad { background: #fef2f2; border-color: #fecaca; }
+    .bar { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid #e5e0d6; padding: 10px 12px; display: flex; gap: 8px; z-index: 10; }
+    .bar button { flex: 1; border-radius: 12px; font-weight: 700; font-size: .85rem; padding: 10px 6px; }
+    .cart-panel { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 20; }
+    .cart-panel.open { display: block; }
+    .cart-sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 85vh; overflow-y: auto; background: #fff; border-radius: 18px 18px 0 0; padding: 18px 16px 24px; }
+    .cart-line { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0ece4; }
+    .cart-line .name { flex: 1; font-weight: 600; }
+    .qty { display: flex; align-items: center; gap: 8px; }
+    .qty button { width: 30px; height: 30px; border-radius: 50%; border: 1px solid #d1d5db; background: #fff; font-size: 1.1rem; line-height: 1; }
+    .footer-note { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid #e5e0d6; padding: 12px 16px; text-align: center; font-size: .9rem; }
+  </style>
+</head>
+<body data-token="{{ table.qr_token }}">
+  <header class="hero">
+    <h1>{{ restaurant.business_name }}</h1>
+    {% if branch.name %}<small>{{ branch.name }}</small><br>{% endif %}
+    <span class="table-badge">Mesa {{ table.number }}</span>
+  </header>
+
+  <div id="banner" class="banner" role="status" aria-live="polite"></div>
+
+  {% if categories %}
+  <nav class="cats" aria-label="Categorías">
+    {% for category in categories %}<a href="#cat-{{ category.id }}">{{ category.name }}</a>{% endfor %}
+  </nav>
+  {% endif %}
+
+  <main>
+    {% for category in categories %}
+    <section id="cat-{{ category.id }}">
+      <h2>{{ category.name }}</h2>
+      {% for item in category.available_items %}
+      <article class="dish">
+        {% if item.image_url %}<img src="{{ item.image_url }}" alt="{{ item.name }}" loading="lazy">{% endif %}
+        <div class="flex-grow-1">
+          <h3>{{ item.name }}</h3>
+          {% if item.description %}<p>{{ item.description }}</p>{% endif %}
+        </div>
+        <div class="price">${{ item.price|floatformat:0|intcomma }}</div>
+        <button type="button" class="add-btn" aria-label="Agregar {{ item.name }}" data-id="{{ item.id }}" data-name="{{ item.name }}" data-price="{{ item.price|stringformat:'s' }}">+</button>
+      </article>
+      {% endfor %}
+    </section>
+    {% empty %}
+    <p class="text-center text-muted mt-5">La carta todavía no tiene productos disponibles.</p>
+    {% endfor %}
+    {% if has_tax %}<p class="text-muted small mt-4">Los impuestos, cuando aplican, se suman al total de la cuenta.</p>{% endif %}
+  </main>
+
+  <div class="bar">
+    <button type="button" class="btn btn-outline-dark" id="call-waiter">Llamar al mesero</button>
+    <button type="button" class="btn btn-outline-dark" id="ask-bill">Pedir la cuenta</button>
+    <button type="button" class="btn btn-dark" id="open-cart">Mi pedido (<span id="cart-count">0</span>)</button>
+  </div>
+
+  <div class="cart-panel" id="cart-panel">
+    <div class="cart-sheet" role="dialog" aria-label="Mi pedido">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="m-0">Mi pedido</h2>
+        <button type="button" class="btn-close" id="close-cart" aria-label="Cerrar"></button>
+      </div>
+      <div id="cart-lines"></div>
+      <p id="cart-empty" class="text-muted my-3">Aún no has agregado productos. Usa el botón + de la carta.</p>
+      <div id="cart-footer" style="display:none">
+        <label for="order-note" class="form-label mt-3 mb-1">¿Alguna nota para la cocina? (opcional)</label>
+        <textarea id="order-note" class="form-control" rows="2" maxlength="255" placeholder="Ej.: sin cebolla"></textarea>
+        <div class="d-flex justify-content-between mt-3"><span>Subtotal (sin impuestos)</span><strong id="cart-total"></strong></div>
+        <p id="cart-error" class="text-danger small mt-2 mb-0"></p>
+        <button type="button" class="btn btn-dark w-100 mt-3" id="send-order">Enviar pedido al mesero</button>
+        <p class="text-muted small mt-2 mb-0">Tu pedido pasa a cocina cuando el mesero lo confirme.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    var token = document.body.dataset.token;
+    var base = '/m/' + token;
+    var storageKey = 'bemba_order_' + token;
+    var cart = {};
+    var banner = document.getElementById('banner');
+    var panel = document.getElementById('cart-panel');
+
+    function csrf() {
+      var m = document.cookie.match(/(?:^|; )csrftoken=([^;]*)/);
+      return m ? decodeURIComponent(m[1]) : '';
+    }
+    function money(n) {
+      return Number(n).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+    }
+    function post(path, body) {
+      return fetch(base + path, {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify(body)
+      }).then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); });
+    }
+    function showBanner(text, kind) {
+      banner.textContent = text;
+      banner.className = 'banner' + (kind ? ' ' + kind : '');
+      banner.style.display = text ? 'block' : 'none';
+    }
+
+    function renderCart() {
+      var lines = document.getElementById('cart-lines');
+      lines.textContent = '';
+      var ids = Object.keys(cart), count = 0, total = 0;
+      ids.forEach(function (id) {
+        var it = cart[id];
+        count += it.qty; total += it.qty * it.price;
+        var row = document.createElement('div'); row.className = 'cart-line';
+        var name = document.createElement('div'); name.className = 'name'; name.textContent = it.name;
+        var qty = document.createElement('div'); qty.className = 'qty';
+        var minus = document.createElement('button'); minus.type = 'button'; minus.textContent = '−';
+        var num = document.createElement('span'); num.textContent = it.qty;
+        var plus = document.createElement('button'); plus.type = 'button'; plus.textContent = '+';
+        minus.onclick = function () { change(id, -1); };
+        plus.onclick = function () { change(id, 1); };
+        qty.append(minus, num, plus);
+        var price = document.createElement('div'); price.textContent = money(it.qty * it.price);
+        row.append(name, qty, price);
+        lines.appendChild(row);
+      });
+      document.getElementById('cart-count').textContent = count;
+      document.getElementById('cart-empty').style.display = ids.length ? 'none' : 'block';
+      document.getElementById('cart-footer').style.display = ids.length ? 'block' : 'none';
+      document.getElementById('cart-total').textContent = money(total);
+    }
+    function change(id, delta) {
+      if (!cart[id]) return;
+      cart[id].qty = Math.min(20, cart[id].qty + delta);
+      if (cart[id].qty <= 0) delete cart[id];
+      renderCart();
+    }
+
+    document.querySelectorAll('.add-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.dataset.id;
+        if (!cart[id]) cart[id] = { name: btn.dataset.name, price: Number(btn.dataset.price), qty: 0 };
+        change(id, 1);
+        btn.blur();
+      });
+    });
+    document.getElementById('open-cart').onclick = function () { panel.classList.add('open'); };
+    document.getElementById('close-cart').onclick = function () { panel.classList.remove('open'); };
+    panel.addEventListener('click', function (e) { if (e.target === panel) panel.classList.remove('open'); });
+
+    document.getElementById('send-order').onclick = function () {
+      var btn = this, err = document.getElementById('cart-error');
+      err.textContent = '';
+      var items = Object.keys(cart).map(function (id) { return { menu_item: Number(id), quantity: cart[id].qty }; });
+      if (!items.length) return;
+      btn.disabled = true;
+      post('/pedido/', { items: items, note: document.getElementById('order-note').value }).then(function (res) {
+        if (res.ok) {
+          sessionStorage.setItem(storageKey, res.data.id);
+          cart = {}; renderCart(); document.getElementById('order-note').value = '';
+          panel.classList.remove('open');
+          showBanner(res.data.label, '');
+          poll();
+        } else {
+          err.textContent = res.data.error || 'No se pudo enviar el pedido. Llama al mesero.';
+        }
+      }).catch(function () {
+        err.textContent = 'Sin conexión. Intenta de nuevo o llama al mesero.';
+      }).then(function () { btn.disabled = false; });
+    };
+
+    function sendRequest(kind, btn) {
+      btn.disabled = true;
+      post('/llamado/', { kind: kind }).then(function (res) {
+        if (res.ok) { poll(); } else { showBanner(res.data.error || 'No se pudo avisar. Levanta la mano.', 'bad'); btn.disabled = false; }
+      }).catch(function () { showBanner('Sin conexión. Levanta la mano para llamar al mesero.', 'bad'); btn.disabled = false; });
+    }
+    var callBtn = document.getElementById('call-waiter'), billBtn = document.getElementById('ask-bill');
+    callBtn.onclick = function () { sendRequest('waiter', callBtn); };
+    billBtn.onclick = function () { sendRequest('bill', billBtn); };
+
+    function poll() {
+      if (document.hidden) return;
+      var orderId = sessionStorage.getItem(storageKey);
+      fetch(base + '/estado/' + (orderId ? '?order=' + encodeURIComponent(orderId) : ''), { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (!data) return;
+          callBtn.disabled = data.requests.waiter;
+          callBtn.textContent = data.requests.waiter ? 'Mesero avisado ✓' : 'Llamar al mesero';
+          billBtn.disabled = data.requests.bill;
+          billBtn.textContent = data.requests.bill ? 'Cuenta solicitada ✓' : 'Pedir la cuenta';
+          if (data.order) {
+            var st = data.order.status;
+            showBanner(data.order.label, st === 'rejected' || st === 'expired' ? 'bad' : (data.order.final || st === 'confirmed' ? 'ok' : ''));
+            if (data.order.final) sessionStorage.removeItem(storageKey);
+          }
+        }).catch(function () {});
+    }
+    setInterval(poll, 6000);
+    document.addEventListener('visibilitychange', poll);
+    renderCart();
+    poll();
+  })();
+  </script>
+</body>
+</html>

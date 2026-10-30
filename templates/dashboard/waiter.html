@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Panel de mesero | Bemba{% endblock %}
+{% block heading %}Panel de mesero{% endblock %}
+{% block content %}
+{% if requests_badge %}
+<div class="alert alert-warning d-flex justify-content-between align-items-center">
+  <span>Tienes <strong>{{ requests_badge }}</strong> solicitud(es) de clientes por atender.</span>
+  <a class="btn btn-sm btn-dark" href="{% url 'requests_board' %}">Ver solicitudes</a>
+</div>
+{% endif %}
+<section class="kitchen-summary">
+  <article class="summary-chip"><span>Tus pedidos abiertos</span><strong>{{ my_open|length }}</strong></article>
+  <article class="summary-chip"><span>Listos para servir</span><strong>{{ ready_orders|length }}</strong></article>
+  {% for item in table_counts %}
+  <article class="summary-chip"><span>Mesas: {{ item.label }}</span><strong>{{ item.total }}</strong></article>
+  {% endfor %}
+</section>
+
+<section class="command-actions mb-3">
+  <a href="{% url 'pos' %}" class="btn btn-primary">Nuevo pedido</a>
+  <a href="{% url 'tables' %}" class="btn btn-outline-dark">Ver mapa de mesas</a>
+</section>
+
+{% if ready_orders %}
+<section class="panel">
+  <div class="panel-title">Listos para llevar a la mesa</div>
+  {% for order in ready_orders %}
+  <div class="receipt-row"><span>Pedido #{{ order.id }} · Mesa {{ order.table.number }}</span><strong>Listo</strong></div>
+  {% endfor %}
+</section>
+{% endif %}
+
+<section class="panel">
+  <div class="panel-title">Tus pedidos abiertos</div>
+  <table class="table align-middle">
+    <thead><tr><th>Pedido</th><th>Mesa</th><th>Estado</th><th class="text-end">Total</th><th></th></tr></thead>
+    <tbody>
+      {% for order in my_open %}
+      <tr>
+        <td>#{{ order.id }}</td>
+        <td>Mesa {{ order.table.number }}</td>
+        <td><span class="status-pill status-pill--{{ order.status }}">{{ order.get_status_display }}</span></td>
+        <td class="text-end">${{ order.total|floatformat:0 }}</td>
+        <td class="text-end"><a class="btn btn-sm btn-outline-dark" href="{% url 'checkout' order.id %}">Abrir</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="text-muted">No tienes pedidos abiertos.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

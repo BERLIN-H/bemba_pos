@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Nueva orden de compra | Bemba{% endblock %}
+{% block heading %}Nueva orden de compra{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="panel-title">Crear orden de compra</div>
+  <p>Crea una orden para recibir stock de ingredientes.</p>
+</section>
+
+<section class="panel">
+  {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+  <form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+      {{ form.supplier.label_tag }}
+      {{ form.supplier }}
+    </div>
+    <div class="mb-3">
+      {{ form.branch.label_tag }}
+      {{ form.branch }}
+    </div>
+    <div class="mb-3">
+      <label>Ingrediente</label>
+      <select name="ingredient" class="form-select" required>
+        {% for ingredient in ingredients %}
+        <option value="{{ ingredient.id }}" {% if request.GET.ingredient == ingredient.id|stringformat:'s' %}selected{% endif %}>{{ ingredient.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mb-3">
+      <label>Cantidad</label>
+      <input class="form-control" type="number" step="0.001" name="quantity" value="1" required>
+    </div>
+    <div class="mb-3">
+      <label>Costo unitario</label>
+      <input class="form-control" type="number" step="0.01" name="unit_cost" value="0.00" required>
+    </div>
+    <div class="mb-3">
+      {{ form.notes.label_tag }}
+      {{ form.notes }}
+    </div>
+    <button type="submit" class="btn btn-primary">Guardar orden</button>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Mesas | Bemba{% endblock %}
+{% block heading %}Gestión de mesas{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="panel-title">Mapa de mesas</div>
+  <p>Visualiza el estado de cada mesa con una presentación clara y ordenada.</p>
+  {% if request.user.is_superuser or request.user.role == 'admin' or request.user.role == 'manager' %}
+  <a class="btn btn-sm btn-outline-dark" href="{% url 'tables_qr' %}">Códigos QR de las mesas</a>
+  {% endif %}
+</section>
+
+<section class="table-map">
+  {% for table in tables %}
+  <article class="table-card {{ table.status }}">
+    <span class="table-card__tag">{{ table.zone.name }}</span>
+    <strong>Mesa {{ table.number }}</strong>
+    <small>{{ table.seats }} puestos · {{ table.get_status_display }}</small>
+    {% if table.open_order %}
+    <div class="table-card__order">
+      <span class="badge bg-warning text-dark">Pedido #{{ table.open_order.id }}</span>
+      <small>{{ table.open_order.get_status_display }}</small>
+      <a class="btn btn-sm btn-outline-light mt-2" href="{% url 'checkout' table.open_order.id %}">Abrir pedido</a>
+    </div>
+    {% elif table.status == 'pending' or table.status == 'cleaning' %}
+    <form method="post" action="{% url 'table_release' table.id %}" class="mt-2">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm btn-outline-light">Marcar disponible</button>
+    </form>
+    {% endif %}
+  </article>
+  {% empty %}
+  <p class="empty-state">No hay mesas creadas.</p>
+  {% endfor %}
+</section>
+{% endblock %}

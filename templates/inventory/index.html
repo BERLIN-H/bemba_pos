@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% block title %}Inventario | Bemba{% endblock %}
+{% block heading %}Inventario{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="panel-title">Ingredientes</div>
+  <p>Monitorea el inventario con una presentación moderna que facilita encontrar los ingredientes críticos en una vista rápida.</p>
+  <input class="form-control inventory-search" type="search" placeholder="Buscar ingrediente..." aria-label="Buscar ingrediente">
+  <small class="inventory-search-status text-muted" aria-live="polite"></small>
+</section>
+
+{% if request.user.is_superuser or request.user.role == 'admin' or request.user.role == 'manager' %}
+<section class="panel mb-3 alert alert-info">
+  <div>
+    <strong>Consumo automático activado</strong>
+    <p class="mb-0">Los ingredientes se descuentan automáticamente cuando un pedido se paga. Los movimientos de stock de tipo <strong>Venta</strong> reflejan ese consumo.</p>
+  </div>
+  <div class="mt-2">
+    <strong>{{ sale_movements_count }}</strong> movimiento(s) de venta registrados.
+  </div>
+</section>
+{% endif %}
+
+{% if alerts and alerts.count %}
+<section class="panel mb-3">
+  <div class="panel-title">Alertas de stock</div>
+  <div class="alert alert-warning mb-0">
+    <ul class="mb-0">
+      {% for a in alerts %}
+      <li class="inventory-search-item">
+        <strong>{{ a.ingredient.name }}</strong>: {{ a.message }}
+        <br><small>Stock actual: <strong>{{ a.ingredient.current_stock }} {{ a.ingredient.unit }}</strong> (mínimo: {{ a.ingredient.min_stock }})</small>
+        <br><a href="{% url 'inventory_alerts' %}" class="btn btn-xs btn-outline-warning">Gestionar</a>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endif %}
+
+<section class="panel mb-3">
+  <div class="panel-title">Movimientos recientes de stock</div>
+  {% if movements %}
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <thead>
+        <tr>
+          <th>Ingrediente</th>
+          <th>Tipo</th>
+          <th>Cantidad</th>
+          <th>Nota</th>
+          <th>Por</th>
+          <th>Fecha</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for movement in movements %}
+        <tr class="inventory-search-item {% if movement.movement_type == 'sale' %}table-danger{% elif movement.movement_type == 'in' %}table-success{% endif %}">
+          <td><strong>{{ movement.ingredient.name }}</strong></td>
+          <td>
+            {% if movement.movement_type == 'in' %}
+              <span class="badge bg-success">Entrada</span>
+            {% elif movement.movement_type == 'out' %}
+              <span class="badge bg-warning">Salida</span>
+            {% elif movement.movement_type == 'sale' %}
+              <span class="badge bg-danger">Venta</span>
+            {% elif movement.movement_type == 'adjustment' %}
+              <span class="badge bg-secondary">Ajuste</span>
+            {% endif %}
+          </td>
+          <td>{{ movement.quantity }} {{ movement.ingredient.unit }}</td>
+          <td><small>{{ movement.note }}</small></td>
+          <td><small>{{ movement.created_by.get_full_name }}</small></td>
+          <td><small>{{ movement.created_at|date:'d/m H:i' }}</small></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted">No hay movimientos de stock registrados.</p>
+  {% endif %}
+</section>
+
+<section class="panel mb-3">
+  <div class="d-flex align-items-center justify-content-between">
+    <div>
+      <strong>Operaciones rápidas</strong>
+      <span class="small text-muted">Ver órdenes de compra y proveedores</span>
+    </div>
+    <div>
+      <a class="btn btn-outline-primary btn-sm" href="{% url 'inventory_purchase_orders' %}">Órdenes de compra</a>
+      <a class="btn btn-outline-secondary btn-sm" href="{% url 'inventory_suppliers' %}">Proveedores</a>
+    </div>
+  </div>
+</section>
+
+<div class="row mb-3">
+  <div class="col-md-12">
+    <div class="alert alert-info">
+      <strong>{{ low_stock_items.count }}</strong> ingrediente(s) con stock bajo
+    </div>
+  </div>
+</div>
+
+<section class="inventory-grid">
+  {% for ingredient in ingredients %}
+  <article class="inventory-card inventory-search-item{% if ingredient.current_stock <= ingredient.min_stock %} low-stock{% endif %}">
+    <div>
+      <span>{{ ingredient.name }}</span>
+      <strong>{{ ingredient.current_stock }} {{ ingredient.unit }}</strong>
+    </div>
+    <div>
+      <small>Mínimo: {{ ingredient.min_stock }}</small>
+      <strong>${{ ingredient.unit_cost }}</strong>
+    </div>
+    {% if ingredient.current_stock <= ingredient.min_stock %}
+    <div>
+      <small class="text-danger">⚠️ Stock bajo</small>
+    </div>
+    {% endif %}
+  </article>
+  {% empty %}
+  <p class="empty-state">No hay ingredientes registrados.</p>
+  {% endfor %}
+</section>
+<p class="empty-state inventory-empty-search" hidden>No se encontraron ingredientes con esa busqueda.</p>
+{% endblock %}

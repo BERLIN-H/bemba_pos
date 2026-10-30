@@ -1,0 +1,69 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Bemba POS{% endblock %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/bemba.css' %}">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">Bemba<span>POS</span></div>
+    <nav>
+      {% if request.user.is_superuser %}
+      <a href="{% url 'platform_restaurants' %}">Restaurantes</a>
+      {% endif %}
+      {% if request.user.is_superuser or request.user.role == 'admin' or request.user.role == 'manager' %}
+      <a href="{% url 'dashboard' %}">Dashboard</a>
+      {% else %}
+      <a href="{% url 'home' %}">Mi panel</a>
+      {% endif %}
+
+      {% if request.user.is_superuser or request.user.role == 'admin' or request.user.role == 'manager' or request.user.role == 'cashier' or request.user.role == 'waiter' %}
+      <a href="{% url 'tables' %}">Mesas</a>
+      <a href="{% url 'pos' %}">POS</a>
+      <a href="{% url 'requests_board' %}">Solicitudes{% if requests_badge %} <span class="badge bg-danger">{{ requests_badge }}</span>{% endif %}</a>
+      {% endif %}
+
+      {% if request.user.is_superuser or request.user.role == 'admin' or request.user.role == 'manager' or request.user.role == 'chef' %}
+      <a href="{% url 'kitchen' %}">Cocina</a>
+      {% endif %}
+
+      {% if request.user.is_superuser or request.user.role == 'admin' or request.user.role == 'manager' %}
+      <a href="{% url 'inventory' %}">Inventario</a>
+      <a href="{% url 'reports' %}">Reportes</a>
+      <hr>
+      <a href="{% url 'staff_list' %}">👥 Empleados</a>
+      {% endif %}
+    </nav>
+  </aside>
+  <main class="content">
+    <header class="topbar">
+      <div>
+        <h1>{% block heading %}Bemba{% endblock %}</h1>
+      </div>
+      <div class="dropdown">
+        <button class="user-chip dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+          {{ request.user.get_full_name|default:request.user.username }} · {{ request.user.role|default:"admin" }}
+        </button>
+        <div class="dropdown-menu dropdown-menu-end user-menu">
+          {% if request.user.is_staff %}
+          <a class="dropdown-item" href="/admin/">Panel admin</a>
+          {% endif %}
+          <a class="dropdown-item" href="{% url 'home' %}">Inicio</a>
+          <div class="dropdown-divider"></div>
+          <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button class="dropdown-item text-danger" type="submit">Cerrar sesion</button>
+          </form>
+        </div>
+      </div>
+    </header>
+    {% block content %}{% endblock %}
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{% static 'js/bemba.js' %}"></script>
+</body>
+</html>

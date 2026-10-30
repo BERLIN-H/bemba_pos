@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% block title %}{% if is_edit %}Editar{% else %}Nuevo{% endif %} Empleado | Bemba{% endblock %}
+{% block heading %}{% if is_edit %}Editar{% else %}Nuevo{% endif %} Empleado{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div>
+    <strong>{% if is_edit %}Editar empleado{% else %}Crear nuevo empleado{% endif %}</strong>
+    <p class="small text-muted">{% if is_edit %}Actualiza los datos del empleado{% else %}Completa el formulario para agregar un nuevo miembro del equipo{% endif %}</p>
+  </div>
+</section>
+
+<section class="panel">
+  {% if error %}
+  <div class="alert alert-danger">
+    {{ error }}
+  </div>
+  {% endif %}
+
+  <form method="post" class="needs-validation">
+    {% csrf_token %}
+    
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <label class="form-label">Nombre</label>
+        <input type="text" class="form-control" name="first_name" required value="{{ user.first_name|default:'' }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Apellido</label>
+        <input type="text" class="form-control" name="last_name" required value="{{ user.last_name|default:'' }}">
+      </div>
+    </div>
+
+    {% if not is_edit %}
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <label class="form-label">Usuario (para login)</label>
+        <input type="text" class="form-control" name="username" required>
+        <small class="text-muted">Nombres cortos sin espacios, ej: "jperez"</small>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Contraseña</label>
+        <input type="password" class="form-control" name="password" required minlength="8">
+        <small class="text-muted">Mínimo 8 caracteres</small>
+      </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info mb-3">
+      <strong>Usuario:</strong> <code>{{ user.username }}</code><br>
+      <small>Para cambiar la contraseña, completa el campo abajo. Déjalo vacío si quieres mantener la actual.</small>
+    </div>
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <label class="form-label">Nueva contraseña (opcional)</label>
+        <input type="password" class="form-control" name="password" minlength="8">
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-control" name="email" required value="{{ user.email|default:'' }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Teléfono</label>
+        <input type="tel" class="form-control" name="phone" value="{{ user.phone|default:'' }}">
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <label class="form-label">Rol</label>
+        <select class="form-select" name="role" required>
+          <option value="">-- Selecciona un rol --</option>
+          {% for value, label in roles %}
+            <option value="{{ value }}" {% if user.role == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <small class="text-muted">
+          <strong>Mesero:</strong> crea órdenes<br>
+          <strong>Cajero:</strong> procesa pagos<br>
+          <strong>Cocina:</strong> ve pedidos<br>
+          <strong>Gerente:</strong> acceso completo
+        </small>
+      </div>
+      {% if is_edit %}
+      <div class="col-md-6">
+        <label class="form-label">Estado</label>
+        <div class="form-check mt-2">
+          <input type="checkbox" class="form-check-input" id="is_active" name="is_active_employee" {% if user.is_active_employee %}checked{% endif %}>
+          <label class="form-check-label" for="is_active">
+            Empleado Activo
+          </label>
+        </div>
+        <small class="text-muted">Desactívalo si ya no trabaja aquí</small>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-primary">
+        {% if is_edit %}Guardar Cambios{% else %}Crear Empleado{% endif %}
+      </button>
+      <a href="{% url 'staff_list' %}" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

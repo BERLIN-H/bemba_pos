@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Error | Bemba{% endblock %}
+{% block heading %}Acceso Denegado{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="alert alert-danger" role="alert">
+    <h4 class="alert-heading">{{ message|default:"Acceso no autorizado" }}</h4>
+    <p>No tienes permiso para acceder a esta página. Si crees que es un error, contacta con tu administrador.</p>
+    <hr>
+    <a href="{% url 'home' %}" class="btn btn-sm btn-danger">Volver a la vista principal</a>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Proveedores | Bemba{% endblock %}
+{% block heading %}Proveedores{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="panel-title">Gestión de proveedores</div>
+  <p>Agrega proveedores nuevos y revisa los datos existentes para compras futuras.</p>
+</section>
+
+<section class="panel">
+  <form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+      {{ form.name.label_tag }}
+      {{ form.name }}
+    </div>
+    <div class="mb-3">
+      {{ form.contact_name.label_tag }}
+      {{ form.contact_name }}
+    </div>
+    <div class="mb-3">
+      {{ form.email.label_tag }}
+      {{ form.email }}
+    </div>
+    <div class="mb-3">
+      {{ form.phone.label_tag }}
+      {{ form.phone }}
+    </div>
+    <div class="mb-3">
+      {{ form.address.label_tag }}
+      {{ form.address }}
+    </div>
+    <button type="submit" class="btn btn-primary">Guardar proveedor</button>
+  </form>
+</section>
+
+<section class="inventory-grid">
+  {% for supplier in suppliers %}
+  <article class="inventory-card">
+    <div>
+      <span>{{ supplier.name }}</span>
+      <small class="text-muted">{{ supplier.contact_name }}</small>
+    </div>
+    <div>
+      <div>{{ supplier.email }}</div>
+      <div>{{ supplier.phone }}</div>
+    </div>
+  </article>
+  {% empty %}
+  <p class="empty-state">No hay proveedores registrados.</p>
+  {% endfor %}
+</section>
+{% endblock %}

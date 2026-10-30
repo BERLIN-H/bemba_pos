@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Restaurantes | Bemba{% endblock %}
+{% block heading %}Restaurantes de la plataforma{% endblock %}
+{% block content %}
+{% if created %}
+<div class="alert alert-success">
+  Restaurante <strong>{{ created.business_name }}</strong> creado con sede, zona y mesas.
+  {% if created_admin %}Su administrador es <strong>{{ created_admin.username }}</strong>; ya puede iniciar sesión y crear al resto del personal desde <em>Empleados</em>.{% endif %}
+</div>
+{% endif %}
+
+<section class="panel">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="panel-title mb-0">Restaurantes registrados ({{ restaurants|length }})</div>
+    <a class="btn btn-dark" href="{% url 'platform_restaurant_create' %}">Crear restaurante</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr><th>Restaurante</th><th>Plan</th><th>Estado</th><th class="text-end">Sedes</th><th class="text-end">Mesas</th><th class="text-end">Usuarios</th><th class="text-end">Pedidos</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for r in restaurants %}
+        <tr>
+          <td><strong>{{ r.business_name }}</strong><br><small class="text-muted">{{ r.email }}</small></td>
+          <td>{{ r.plan.name }}</td>
+          <td><span class="status-pill status-pill--{{ r.status }}">{{ r.get_status_display }}</span></td>
+          <td class="text-end">{{ r.branch_count }}</td>
+          <td class="text-end">{{ r.table_count }}</td>
+          <td class="text-end">{{ r.user_count }}</td>
+          <td class="text-end">{{ r.order_count }}</td>
+          <td class="text-end">
+            <form method="post" action="{% url 'platform_restaurant_status' r.id %}" class="d-inline">
+              {% csrf_token %}
+              {% if r.status == 'suspended' %}
+              <input type="hidden" name="status" value="active">
+              <button class="btn btn-sm btn-outline-dark" type="submit">Activar</button>
+              {% else %}
+              <input type="hidden" name="status" value="suspended">
+              <button class="btn btn-sm btn-outline-danger" type="submit">Suspender</button>
+              {% endif %}
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-muted">Todavía no hay restaurantes.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="text-muted small mb-0">Un restaurante suspendido no puede iniciar sesión ni mostrar su carta pública hasta que lo actives de nuevo.</p>
+</section>
+{% endblock %}

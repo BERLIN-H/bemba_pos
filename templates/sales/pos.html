@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}POS | Bemba{% endblock %}
+{% block heading %}Punto de venta{% endblock %}
+{% block content %}
+<section class="pos-layout">
+  {% csrf_token %}
+  <div class="panel pos-menu">
+    <div class="panel-title">Menú</div>
+    <p class="pos-hint">Atajos: Enter para agregar, Alt+S para enviar a cocina, Alt+H para guardar en espera.</p>
+    <div class="row gx-2 mb-3">
+      <div class="col-12 col-md-6">
+        <input id="menu-search" class="form-control" type="search" placeholder="Buscar producto..." aria-label="Buscar producto">
+      </div>
+      <div class="col-12 col-md-6">
+        <div class="category-pills">
+          <button class="filter-pill active" type="button" data-filter="all">Todas</button>
+          {% for category in categories %}
+          <button class="filter-pill" type="button" data-filter="{{ category.id }}">{{ category.name }}</button>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="menu-grid">
+      {% for item in items %}
+      <button class="menu-item" data-id="{{ item.id }}" data-price="{{ item.price }}" data-category="{{ item.category.id }}" type="button">
+        <span>{{ item.category.name }}</span>
+        <strong>{{ item.name }}</strong>
+        <small>${{ item.price }}</small>
+      </button>
+      {% empty %}
+      <p>No hay productos disponibles.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <aside class="panel order-panel">
+    <div class="panel-title">Ticket activo</div>
+    <select id="table-select" class="form-select mb-3">
+      {% for table in tables %}
+      <option value="{{ table.id }}">Mesa {{ table.number }} - {{ table.zone.name }}</option>
+      {% endfor %}
+    </select>
+
+    <div class="hold-actions">
+      <button id="save-hold" class="btn btn-outline-secondary w-100" type="button">Guardar en espera</button>
+      <button id="load-hold" class="btn btn-outline-secondary w-100" type="button">Cargar pedido guardado</button>
+    </div>
+
+    <div id="cart" class="cart-empty">Selecciona productos para crear el pedido.</div>
+    <div id="cart-summary" class="cart-summary"></div>
+    <div id="pos-message" class="small mt-3"></div>
+    <button id="send-kitchen" class="btn btn-dark w-100 mt-3" type="button">Enviar a cocina</button>
+
+    <hr>
+    <div class="panel-title">Pedidos abiertos</div>
+    <div class="open-orders">
+      {% for order in open_orders %}
+      <a href="{% url 'checkout' order.id %}">
+        <span>#{{ order.id }} - Mesa {{ order.table.number }}</span>
+        <strong>${{ order.total }}</strong>
+      </a>
+      {% empty %}
+      <small class="text-muted">No hay pedidos pendientes de cobro.</small>
+      {% endfor %}
+    </div>
+  </aside>
+</section>
+{% endblock %}

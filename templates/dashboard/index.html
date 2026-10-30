@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard | Bemba{% endblock %}
+{% block heading %}Dashboard administrativo{% endblock %}
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+{{ chart_data|json_script:"dashboard-data" }}
+
+<section class="dashboard-command">
+  <div>
+    <span class="eyebrow">Centro de control</span>
+    <h2>Operacion del restaurante en tiempo real</h2>
+    <p>Ventas, cocina, mesas e inventario reunidos en una vista compacta para decidir rapido durante el servicio.</p>
+  </div>
+  <div class="command-actions">
+    <a href="{% url 'pos' %}" class="btn btn-primary">Nueva venta</a>
+    <a href="{% url 'reports' %}" class="btn btn-outline-dark">Ver reportes</a>
+  </div>
+</section>
+
+<section class="dashboard-kpis">
+  <article class="kpi-card kpi-card--sales">
+    <div class="kpi-icon">$</div>
+    <span>Ventas registradas</span>
+    <strong>${{ sales_today|floatformat:0 }}</strong>
+    <small>{{ total_payments }} pago(s) en reportes</small>
+    <div class="kpi-bar"><i style="width: 82%"></i></div>
+  </article>
+  <article class="kpi-card kpi-card--orders">
+    <div class="kpi-icon">#</div>
+    <span>Pedidos abiertos</span>
+    <strong>{{ open_orders }}</strong>
+    <small>{{ kitchen_orders }} en cocina</small>
+    <div class="kpi-bar"><i style="width: 58%"></i></div>
+  </article>
+  <article class="kpi-card kpi-card--tables">
+    <div class="kpi-icon">M</div>
+    <span>Mesas ocupadas</span>
+    <strong>{{ occupied_tables }}</strong>
+    <small>de {{ total_tables }} mesas activas</small>
+    <div class="kpi-bar"><i style="width: 44%"></i></div>
+  </article>
+  <article class="kpi-card kpi-card--stock">
+    <div class="kpi-icon">S</div>
+    <span>Stock critico</span>
+    <strong>{{ low_stock }}</strong>
+    <small>ingredientes bajo minimo</small>
+    <div class="kpi-bar"><i style="width: 35%"></i></div>
+  </article>
+  <article class="kpi-card kpi-card--ticket">
+    <div class="kpi-icon">T</div>
+    <span>Ticket promedio</span>
+    <strong>${{ average_ticket|floatformat:0 }}</strong>
+    <small>promedio por pago registrado</small>
+    <div class="kpi-bar"><i style="width: 64%"></i></div>
+  </article>
+  <article class="kpi-card kpi-card--products">
+    <div class="kpi-icon">P</div>
+    <span>Productos vendidos</span>
+    <strong>{{ products_sold_today }}</strong>
+    <small>unidades en pedidos pagados</small>
+    <div class="kpi-bar"><i style="width: 72%"></i></div>
+  </article>
+</section>
+
+<section class="dashboard-analytics">
+  <div class="analytics-main">
+    <article class="panel chart-panel">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">Reportes</span>
+          <h3>Ventas por fecha</h3>
+        </div>
+      </div>
+      <div class="chart-frame chart-frame--large">
+        <canvas id="salesTrendChart"></canvas>
+      </div>
+    </article>
+
+    <article class="panel chart-panel">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">Ranking</span>
+          <h3>Top productos vendidos</h3>
+        </div>
+      </div>
+      <div class="chart-frame">
+        <canvas id="topProductsChart"></canvas>
+      </div>
+    </article>
+
+    <article class="panel">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">Operacion</span>
+          <h3>Pedidos recientes</h3>
+        </div>
+        <a href="{% url 'pos' %}" class="btn btn-sm btn-outline-dark">Abrir POS</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table dashboard-table align-middle">
+          <thead>
+            <tr><th>Pedido</th><th>Mesa</th><th>Mesero</th><th>Estado</th><th>Total</th></tr>
+          </thead>
+          <tbody>
+            {% for order in recent_orders %}
+            <tr>
+              <td>#{{ order.id }}</td>
+              <td>{{ order.table.number }}</td>
+              <td>{{ order.waiter }}</td>
+              <td><span class="status-pill status-pill--{{ order.status }}">{{ order.get_status_display }}</span></td>
+              <td>${{ order.total|floatformat:0 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5">Sin pedidos registrados.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </div>
+
+  <aside class="analytics-side">
+    <article class="panel chart-panel">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">Pagos</span>
+          <h3>Metodos</h3>
+        </div>
+      </div>
+      <div class="chart-frame chart-frame--donut">
+        <canvas id="paymentMethodsChart"></canvas>
+      </div>
+    </article>
+
+    <article class="panel chart-panel">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">Pedidos</span>
+          <h3>Estados</h3>
+        </div>
+      </div>
+      <div class="chart-frame chart-frame--donut">
+        <canvas id="orderStatusChart"></canvas>
+      </div>
+    </article>
+
+    <article class="panel chart-panel">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">Salon</span>
+          <h3>Mesas</h3>
+        </div>
+      </div>
+      <div class="chart-frame chart-frame--donut">
+        <canvas id="tableStatusChart"></canvas>
+      </div>
+    </article>
+
+    <article class="panel stock-watch">
+      <div class="panel-heading">
+        <div>
+          <span class="eyebrow">Inventario</span>
+          <h3>Alertas criticas</h3>
+        </div>
+        <a href="{% url 'inventory' %}" class="btn btn-sm btn-primary">Inventario</a>
+      </div>
+      <div class="stock-list">
+        {% for item in low_stock_items %}
+        <div class="stock-row">
+          <strong>{{ item.name }}</strong>
+          <span>{{ item.current_stock|floatformat:2 }} {{ item.unit }} / min {{ item.min_stock|floatformat:2 }}</span>
+        </div>
+        {% empty %}
+        <p class="muted mb-0">No hay ingredientes en stock critico.</p>
+        {% endfor %}
+      </div>
+    </article>
+  </aside>
+</section>
+
+<section class="quick-actions panel">
+  <div class="panel-heading">
+    <div>
+      <span class="eyebrow">Accesos rapidos</span>
+      <h3>Herramientas del sistema</h3>
+    </div>
+  </div>
+  <div class="quick-grid">
+    <a href="{% url 'pos' %}"><span>POS</span><strong>Nueva venta</strong></a>
+    <a href="{% url 'tables' %}"><span>MES</span><strong>Mesas</strong></a>
+    <a href="{% url 'kitchen' %}"><span>COC</span><strong>Cocina</strong></a>
+    <a href="{% url 'inventory' %}"><span>INV</span><strong>Inventario</strong></a>
+    <a href="{% url 'inventory_suppliers' %}"><span>PRO</span><strong>Proveedores</strong></a>
+    <a href="{% url 'reports' %}"><span>REP</span><strong>Reportes</strong></a>
+    <a href="{% url 'staff_list' %}"><span>EMP</span><strong>Empleados</strong></a>
+    {% if request.user.is_staff %}
+    <a href="/admin/"><span>ADM</span><strong>Admin</strong></a>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

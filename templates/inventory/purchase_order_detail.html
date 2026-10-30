@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Orden de compra #{{ po.id }} | Bemba{% endblock %}
+{% block heading %}Orden de compra #{{ po.id }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="panel-title">Detalles de la orden</div>
+  <ul class="mb-3">
+    <li><strong>Proveedor:</strong> {{ po.supplier.name }}</li>
+    <li><strong>Estado:</strong> {{ po.get_status_display }}</li>
+    <li><strong>Total:</strong> ${{ po.total }}</li>
+    <li><strong>Creada por:</strong> {{ po.created_by }}</li>
+  </ul>
+  {% if po.status == 'open' %}
+  <form method="post" action="{% url 'inventory_purchase_order_receive' po.id %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-success">Recibir orden</button>
+  </form>
+  {% endif %}
+</section>
+
+<section class="inventory-grid">
+  {% for item in po.items.all %}
+  <article class="inventory-card">
+    <div>
+      <span>{{ item.ingredient.name }}</span>
+    </div>
+    <div>
+      <div>Cantidad: {{ item.quantity }} {{ item.ingredient.unit }}</div>
+      <div>Costo unitario: ${{ item.unit_cost }}</div>
+      <div>Total: ${{ item.line_total }}</div>
+    </div>
+  </article>
+  {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Órdenes de compra | Bemba{% endblock %}
+{% block heading %}Órdenes de compra{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="panel-title">Órdenes de compra</div>
+  <p>Revisa y recibe órdenes de compra creadas desde el inventario.</p>
+  <a class="btn btn-primary btn-sm" href="{% url 'inventory_purchase_order_create' %}">Nueva orden</a>
+</section>
+
+<section class="inventory-grid">
+  {% for po in orders %}
+  <article class="inventory-card">
+    <div>
+      <span>Orden #{{ po.id }}</span>
+      <strong>{{ po.supplier.name }}</strong>
+    </div>
+    <div>
+      <small>{{ po.get_status_display }}</small>
+      <div>Total: ${{ po.total }}</div>
+    </div>
+    <div>
+      <a class="btn btn-sm btn-outline-secondary" href="{% url 'inventory_purchase_order_detail' po.id %}">Ver</a>
+    </div>
+  </article>
+  {% empty %}
+  <p class="empty-state">No hay órdenes de compra registradas.</p>
+  {% endfor %}
+</section>
+{% endblock %}

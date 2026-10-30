@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Crear restaurante | Bemba{% endblock %}
+{% block heading %}Crear restaurante{% endblock %}
+{% block content %}
+<section class="panel" style="max-width: 760px;">
+  <p class="text-muted">Se crea el restaurante con su sede principal, una zona «Salón», las mesas indicadas y su usuario administrador. El administrador crea después el resto del personal.</p>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="row g-3">
+      {% for field in form %}
+      <div class="col-md-6">
+        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="mt-4 d-flex gap-2">
+      <button type="submit" class="btn btn-dark">Crear restaurante</button>
+      <a class="btn btn-outline-dark" href="{% url 'platform_restaurants' %}">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

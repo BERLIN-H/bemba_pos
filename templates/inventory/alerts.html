@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Alertas de inventario | Bemba{% endblock %}
+{% block heading %}Alertas de stock{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="panel-title">Alertas de stock activas</div>
+  <p>Resuelve alertas o crea directamente órdenes de compra para reponer ingredientes críticos.</p>
+</section>
+
+{% if alerts %}
+<div class="alert-list">
+  {% for alert in alerts %}
+  <article class="alert-item">
+    <div>
+      <strong>{{ alert.ingredient.name }}</strong>
+      <div class="small text-muted">{{ alert.message }}</div>
+      <div>Stock actual: <strong>{{ alert.ingredient.current_stock }} {{ alert.ingredient.unit }}</strong></div>
+    </div>
+    <div class="alert-actions">
+      <form method="post" action="{% url 'inventory_alert_action' %}">
+        {% csrf_token %}
+        <input type="hidden" name="alert_id" value="{{ alert.id }}">
+        <button name="action" value="resolve" class="btn btn-sm btn-outline-secondary">Marcar resuelta</button>
+      </form>
+      <a href="{% url 'inventory_purchase_order_create' %}?ingredient={{ alert.ingredient.id }}" class="btn btn-sm btn-dark">Crear orden</a>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<p class="empty-state">No hay alertas activas.</p>
+{% endif %}
+{% endblock %}

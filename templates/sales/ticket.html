@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Ticket #{{ order.id }} | Bemba{% endblock %}
+{% block heading %}Ticket de venta{% endblock %}
+{% block content %}
+<section class="receipt">
+  <h2>Bemba POS</h2>
+  <p>Pedido #{{ order.id }} - Mesa {{ order.table.number }}</p>
+  {% if order.payment %}
+  <p>Pago: {{ order.payment.get_method_display }} - Cajero: {{ order.payment.cashier }}</p>
+  {% endif %}
+  {% for item in order.items.all %}
+  <div class="receipt-row"><span>{{ item.quantity }} x {{ item.menu_item.name }}</span><strong>${{ item.line_subtotal }}</strong></div>
+  {% endfor %}
+  <hr>
+  <div class="receipt-row"><span>Subtotal</span><strong>${{ order.subtotal }}</strong></div>
+  <div class="receipt-row"><span>Impuestos</span><strong>${{ order.tax }}</strong></div>
+  <div class="receipt-row total"><span>Total</span><strong>${{ order.total }}</strong></div>
+  {% if order.payment %}
+  <div class="receipt-row"><span>Recibido</span><strong>${{ order.payment.received }}</strong></div>
+  <div class="receipt-row"><span>Cambio</span><strong>${{ order.payment.change }}</strong></div>
+  {% endif %}
+  <button class="btn btn-outline-dark mt-3" onclick="window.print()">Imprimir</button>
+</section>
+{% endblock %}

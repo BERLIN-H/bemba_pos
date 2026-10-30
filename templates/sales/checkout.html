@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load l10n %}
+{% block title %}Cobro pedido #{{ order.id }} | Bemba{% endblock %}
+{% block heading %}Cobro de pedido{% endblock %}
+{% block content %}
+<section class="checkout-layout">
+  {% csrf_token %}
+  <div class="panel">
+    <div class="panel-title">Pedido #{{ order.id }} - Mesa {{ order.table.number }}</div>
+    <table class="table align-middle">
+      <thead><tr><th>Producto</th><th>Cantidad</th><th class="text-end">Subtotal</th></tr></thead>
+      <tbody>
+        {% for item in order.items.all %}
+        <tr>
+          <td>{{ item.menu_item.name }}</td>
+          <td>{{ item.quantity }}</td>
+          <td class="text-end">${{ item.line_subtotal }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="receipt-row"><span>Subtotal</span><strong>${{ order.subtotal }}</strong></div>
+    <div class="receipt-row"><span>Impuestos</span><strong>${{ order.tax }}</strong></div>
+    <div class="receipt-row total"><span>Total</span><strong>${{ order.total }}</strong></div>
+  </div>
+
+  <aside class="panel">
+    <div class="panel-title">Registrar pago</div>
+    {% if order.payment %}
+    <div class="alert alert-success">Este pedido ya fue pagado.</div>
+    <a class="btn btn-dark w-100" href="{% url 'ticket' order.id %}">Ver ticket</a>
+    {% else %}
+    <form id="checkout-form" data-order-id="{{ order.id }}">
+      <label class="form-label">Metodo de pago</label>
+      <select class="form-select mb-3" name="method">
+        {% for value, label in payment_methods %}
+        <option value="{{ value }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+      <label class="form-label">Valor a pagar</label>
+      <input class="form-control mb-3" name="amount" type="number" min="0" step="0.01" value="{{ order.total|unlocalize }}" readonly>
+      <label class="form-label">Dinero recibido</label>
+      <input class="form-control mb-3" name="received" type="number" min="0" step="0.01" value="{{ order.total|unlocalize }}">
+      <label class="form-label">Referencia</label>
+      <input class="form-control mb-3" name="reference" type="text" placeholder="Voucher, transferencia o nota">
+      <div class="receipt-row"><span>Cambio</span><strong id="payment-change">$0</strong></div>
+      <div id="checkout-message"></div>
+      <button class="btn btn-dark w-100 mt-3" type="submit">Confirmar pago</button>
+    </form>
+
+    <div class="mt-4">
+      <label class="form-label">Transferir a otra mesa</label>
+      <select id="transfer-table-select" class="form-select mb-3">
+        {% for table in tables %}
+        <option value="{{ table.id }}" {% if table.id == order.table.id %}selected{% endif %}>
+          Mesa {{ table.number }} - {{ table.zone.name }} ({{ table.get_status_display }})
+        </option>
+        {% endfor %}
+      </select>
+      <button id="transfer-table" class="btn btn-outline-secondary w-100" type="button">Transferir mesa</button>
+    </div>
+    {% endif %}
+  </aside>
+</section>
+{% endblock %}

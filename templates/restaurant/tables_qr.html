@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Códigos QR | Bemba{% endblock %}
+{% block heading %}Códigos QR de las mesas{% endblock %}
+{% block content %}
+<section class="panel d-print-none">
+  <div class="panel-title">Carta digital por mesa</div>
+  <p>Imprime cada código y pégalo en su mesa. Al escanearlo, el cliente ve la carta y la mesa queda en estado <strong>pendiente</strong> hasta que pida o venza el tiempo.</p>
+  <p class="mb-2"><small>Dirección que llevan los códigos: <code>{{ base_url }}</code></small></p>
+  {% if is_local_address %}
+  <div class="alert alert-warning mb-3">
+    Los códigos apuntan a una dirección local (<code>{{ base_url }}</code>) que los celulares no pueden abrir.
+    Define <code>PUBLIC_BASE_URL</code> en <code>.env</code> con la IP de tu red (por ejemplo <code>http://192.168.1.20:8000</code>) o con tu dominio, y recarga esta página.
+  </div>
+  {% endif %}
+  <button class="btn btn-dark" type="button" onclick="window.print()">Imprimir códigos</button>
+  <a class="btn btn-outline-dark" href="{% url 'tables' %}">Volver a mesas</a>
+</section>
+
+<section class="table-map">
+  {% for row in rows %}
+  <article class="table-card text-center" style="break-inside: avoid;">
+    <span class="table-card__tag">{{ row.table.zone.name }}</span>
+    <strong>Mesa {{ row.table.number }}</strong>
+    <img src="{% url 'table_qr_svg' row.table.id %}" alt="Código QR de la mesa {{ row.table.number }}" style="width: 100%; max-width: 180px; margin: 8px auto; background: #fff; padding: 6px; border-radius: 8px;">
+    <small>Escanea para ver la carta</small>
+    <small class="d-print-none text-break">{{ row.url }}</small>
+  </article>
+  {% empty %}
+  <p class="empty-state">No hay mesas activas.</p>
+  {% endfor %}
+</section>
+{% endblock %}

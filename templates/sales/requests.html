@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}Solicitudes | Bemba{% endblock %}
+{% block heading %}Solicitudes de clientes{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="panel-title">Pedidos por confirmar</div>
+  <p class="text-muted">Los pedidos que el cliente envía desde su celular no llegan a cocina hasta que los confirmes.</p>
+  {% for co in pending %}
+  <article class="panel mb-3">
+    <div class="d-flex justify-content-between flex-wrap gap-2">
+      <strong>Mesa {{ co.table.number }} · {{ co.table.zone.name }}</strong>
+      <small class="text-muted">{{ co.created_at|date:'H:i' }} · total estimado ${{ co.estimated_total|floatformat:0 }}</small>
+    </div>
+    <ul class="my-2">
+      {% for item in co.items.all %}
+      <li><strong>{{ item.quantity }} ×</strong> {{ item.menu_item.name }}{% if item.notes %} <small class="text-muted">({{ item.notes }})</small>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% if co.note %}<p class="mb-2"><small>Nota del cliente: {{ co.note }}</small></p>{% endif %}
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <form method="post" action="{% url 'customer_order_confirm' co.id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-dark btn-sm">Confirmar y enviar a cocina</button>
+      </form>
+      <form method="post" action="{% url 'customer_order_reject' co.id %}" class="d-flex gap-2">
+        {% csrf_token %}
+        <select name="reason" class="form-select form-select-sm" aria-label="Motivo">
+          <option value="">Sin motivo</option>
+          <option value="Producto agotado">Producto agotado</option>
+          <option value="Hay un error en el pedido">Hay un error en el pedido</option>
+          <option value="Ya vamos a tomar tu pedido">Ya vamos a tomar tu pedido</option>
+        </select>
+        <button type="submit" class="btn btn-outline-danger btn-sm">Rechazar</button>
+      </form>
+    </div>
+  </article>
+  {% empty %}
+  <p class="text-muted mb-0">No hay pedidos por confirmar.</p>
+  {% endfor %}
+</section>
+
+<section class="panel">
+  <div class="panel-title">Llamados de mesa</div>
+  {% for call in calls %}
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 border-bottom py-2">
+    <div>
+      <strong>Mesa {{ call.table.number }}</strong> · {{ call.get_kind_display }}
+      <small class="text-muted">· {{ call.created_at|date:'H:i' }}</small>
+      {% if call.kind == 'bill' %}
+      <div>
+        {% for order in call.open_orders %}
+        <a class="btn btn-sm btn-outline-dark mt-1" href="{% url 'checkout' order.id %}">Cobrar pedido #{{ order.id }} (${{ order.total|floatformat:0 }})</a>
+        {% empty %}
+        <small class="text-muted">La mesa no tiene pedidos abiertos.</small>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    <form method="post" action="{% url 'table_request_attend' call.id %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm btn-dark">Atendido</button>
+    </form>
+  </div>
+  {% empty %}
+  <p class="text-muted mb-0">Ninguna mesa está llamando.</p>
+  {% endfor %}
+</section>
+
+<script>
+  // Se actualiza sola, salvo que estés interactuando con un formulario.
+  setInterval(function () {
+    var el = document.activeElement;
+    if (!el || el === document.body) { location.reload(); }
+  }, 15000);
+</script>
+{% endblock %}
