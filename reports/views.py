@@ -1,5 +1,6 @@
 from io import BytesIO
 import logging
+from decimal import Decimal, ROUND_HALF_UP
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum
@@ -8,11 +9,19 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 
-from accounts.permissions import role_required
+from accounts.permissions import restaurant_module_required, role_required
 from sales.models import Payment
 from restaurant.tenancy import scoped_queryset
 
 logger = logging.getLogger(__name__)
+
+
+def format_cop(value):
+    try:
+        amount = Decimal(str(value or 0)).quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+    except (ArithmeticError, TypeError, ValueError):
+        amount = Decimal('0')
+    return '$' + f'{amount:,.0f}'.replace(',', '.')
 
 
 def parse_report_date(value):
@@ -74,7 +83,8 @@ def get_sales_report_queryset(request):
 
 
 @login_required
-@role_required('admin', 'manager')
+@restaurant_module_required('reports')
+@role_required('manager')
 def reports_home(request):
     payments, date_from, date_to = get_sales_report_queryset(request)
     totals = payments.aggregate(total=Sum('amount'), transactions=Count('id'))
@@ -91,7 +101,8 @@ def reports_home(request):
 
 
 @login_required
-@role_required('admin', 'manager')
+@restaurant_module_required('reports')
+@role_required('manager')
 def sales_pdf(request):
     from reportlab.lib.pagesizes import letter
     from reportlab.pdfgen import canvas
@@ -117,13 +128,13 @@ def sales_pdf(request):
         if y < 80:
             pdf.showPage()
             y = header()
-        pdf.drawString(40, y, f'Pedido #{payment.order_id} | {payment.get_method_display()} | ${payment.amount} | {timezone.localtime(payment.created_at):%Y-%m-%d %H:%M}')
+        pdf.drawString(40, y, f'Pedido #{payment.order_id} | {payment.get_method_display()} | {format_cop(payment.amount)} | {timezone.localtime(payment.created_at):%Y-%m-%d %H:%M}')
         y -= 18
     if y < 80:
         pdf.showPage()
         y = header()
     pdf.setFont('Helvetica-Bold', 12)
-    pdf.drawString(40, y - 20, f'Transacciones: {totals["count"] or 0}   Total: ${totals["total"] or 0}')
+    pdf.drawString(40, y - 20, f'Transacciones: {totals["count"] or 0}   Total: {format_cop(totals["total"])}')
     pdf.save()
     buffer.seek(0)
     return FileResponse(buffer, as_attachment=True, filename='bemba-reporte-ventas.pdf')

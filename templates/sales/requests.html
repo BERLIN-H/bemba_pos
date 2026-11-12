@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load money %}
 {% block title %}Solicitudes | Bemba{% endblock %}
 {% block heading %}Solicitudes de clientes{% endblock %}
 {% block content %}
@@ -9,7 +10,7 @@
   <article class="panel mb-3">
     <div class="d-flex justify-content-between flex-wrap gap-2">
       <strong>Mesa {{ co.table.number }} · {{ co.table.zone.name }}</strong>
-      <small class="text-muted">{{ co.created_at|date:'H:i' }} · total estimado ${{ co.estimated_total|floatformat:0 }}</small>
+      <small class="text-muted">{{ co.created_at|date:'H:i' }} · total estimado {{ co.estimated_total|money }}</small>
     </div>
     <ul class="my-2">
       {% for item in co.items.all %}
@@ -18,10 +19,10 @@
     </ul>
     {% if co.note %}<p class="mb-2"><small>Nota del cliente: {{ co.note }}</small></p>{% endif %}
     <div class="d-flex flex-wrap gap-2 align-items-center">
-      <form method="post" action="{% url 'customer_order_confirm' co.id %}">
+      {% if request.user.is_superuser or request.user.role == 'waiter' %}<form method="post" action="{% url 'customer_order_confirm' co.id %}">
         {% csrf_token %}
         <button type="submit" class="btn btn-dark btn-sm">Confirmar y enviar a cocina</button>
-      </form>
+      </form>{% endif %}
       <form method="post" action="{% url 'customer_order_reject' co.id %}" class="d-flex gap-2">
         {% csrf_token %}
         <select name="reason" class="form-select form-select-sm" aria-label="Motivo">
@@ -49,7 +50,7 @@
       {% if call.kind == 'bill' %}
       <div>
         {% for order in call.open_orders %}
-        <a class="btn btn-sm btn-outline-dark mt-1" href="{% url 'checkout' order.id %}">Cobrar pedido #{{ order.id }} (${{ order.total|floatformat:0 }})</a>
+        <a class="btn btn-sm btn-outline-dark mt-1" href="{% url 'checkout' order.id %}">Cobrar pedido #{{ order.id }} ({{ order.total|money }})</a>
         {% empty %}
         <small class="text-muted">La mesa no tiene pedidos abiertos.</small>
         {% endfor %}

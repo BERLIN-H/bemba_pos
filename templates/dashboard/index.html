@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load money %}
 {% block title %}Dashboard | Bemba{% endblock %}
 {% block heading %}Dashboard administrativo{% endblock %}
 {% block content %}
@@ -21,7 +22,7 @@
   <article class="kpi-card kpi-card--sales">
     <div class="kpi-icon">$</div>
     <span>Ventas registradas</span>
-    <strong>${{ sales_today|floatformat:0 }}</strong>
+    <strong>{{ sales_today|money }}</strong>
     <small>{{ total_payments }} pago(s) en reportes</small>
     <div class="kpi-bar"><i style="width: 82%"></i></div>
   </article>
@@ -49,7 +50,7 @@
   <article class="kpi-card kpi-card--ticket">
     <div class="kpi-icon">T</div>
     <span>Ticket promedio</span>
-    <strong>${{ average_ticket|floatformat:0 }}</strong>
+    <strong>{{ average_ticket|money }}</strong>
     <small>promedio por pago registrado</small>
     <div class="kpi-bar"><i style="width: 64%"></i></div>
   </article>
@@ -108,7 +109,7 @@
               <td>{{ order.table.number }}</td>
               <td>{{ order.waiter }}</td>
               <td><span class="status-pill status-pill--{{ order.status }}">{{ order.get_status_display }}</span></td>
-              <td>${{ order.total|floatformat:0 }}</td>
+              <td>{{ order.total|money }}</td>
             </tr>
             {% empty %}
             <tr><td colspan="5">Sin pedidos registrados.</td></tr>

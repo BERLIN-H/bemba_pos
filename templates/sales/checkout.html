@@ -1,12 +1,14 @@
 {% extends 'base.html' %}
 {% load l10n %}
+{% load money %}
 {% block title %}Cobro pedido #{{ order.id }} | Bemba{% endblock %}
 {% block heading %}Cobro de pedido{% endblock %}
 {% block content %}
 <section class="checkout-layout">
   {% csrf_token %}
   <div class="panel">
-    <div class="panel-title">Pedido #{{ order.id }} - Mesa {{ order.table.number }}</div>
+    <div class="panel-title">Cuenta #{{ order.id }} - Mesa {{ order.table.number }}{% if order.customer_name %} · {{ order.customer_name }}{% endif %}</div>
+    {% if order.customer_document or order.customer_phone %}<p class="text-muted">{% if order.customer_document %}Documento: {{ order.customer_document }}{% endif %}{% if order.customer_phone %} · Teléfono: {{ order.customer_phone }}{% endif %}</p>{% endif %}
     <table class="table align-middle">
       <thead><tr><th>Producto</th><th>Cantidad</th><th class="text-end">Subtotal</th></tr></thead>
       <tbody>
@@ -14,14 +16,14 @@
         <tr>
           <td>{{ item.menu_item.name }}</td>
           <td>{{ item.quantity }}</td>
-          <td class="text-end">${{ item.line_subtotal }}</td>
+          <td class="text-end">{{ item.line_subtotal|money }}</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
-    <div class="receipt-row"><span>Subtotal</span><strong>${{ order.subtotal }}</strong></div>
-    <div class="receipt-row"><span>Impuestos</span><strong>${{ order.tax }}</strong></div>
-    <div class="receipt-row total"><span>Total</span><strong>${{ order.total }}</strong></div>
+    <div class="receipt-row"><span>Subtotal</span><strong>{{ order.subtotal|money }}</strong></div>
+    <div class="receipt-row"><span>Impuestos</span><strong>{{ order.tax|money }}</strong></div>
+    <div class="receipt-row total"><span>Total</span><strong>{{ order.total|money }}</strong></div>
   </div>
 
   <aside class="panel">
@@ -32,15 +34,22 @@
     {% else %}
     <form id="checkout-form" data-order-id="{{ order.id }}">
       <label class="form-label">Metodo de pago</label>
-      <select class="form-select mb-3" name="method">
+      <select id="payment-method" class="form-select mb-3" name="method">
         {% for value, label in payment_methods %}
         <option value="{{ value }}">{{ label }}</option>
         {% endfor %}
       </select>
+      <div id="transfer-info" class="alert alert-info" hidden>
+        <strong>Datos de transferencia</strong>
+        {% if restaurant.payment_instructions %}<p class="mb-1">{{ restaurant.payment_instructions|linebreaksbr }}</p>{% else %}<p class="mb-1">Solicita al establecimiento los datos de pago antes de confirmar.</p>{% endif %}
+        {% if restaurant.payment_qr_url %}<img src="{{ restaurant.payment_qr_url }}" alt="Código QR de pago" class="img-fluid mt-2" style="max-width: 220px">{% endif %}
+        <small class="d-block mt-2">Confirma el pago únicamente después de verificar que fue recibido.</small>
+      </div>
       <label class="form-label">Valor a pagar</label>
-      <input class="form-control mb-3" name="amount" type="number" min="0" step="0.01" value="{{ order.total|unlocalize }}" readonly>
+      <input class="form-control mb-1" type="text" value="{{ order.total|money }}" readonly aria-label="Valor a pagar">
+      <input name="amount" type="hidden" value="{{ order.total|unlocalize }}">
       <label class="form-label">Dinero recibido</label>
-      <input class="form-control mb-3" name="received" type="number" min="0" step="0.01" value="{{ order.total|unlocalize }}">
+      <input class="form-control mb-3" name="received" type="text" inputmode="numeric" value="{{ order.total|floatformat:0 }}" autocomplete="off">
       <label class="form-label">Referencia</label>
       <input class="form-control mb-3" name="reference" type="text" placeholder="Voucher, transferencia o nota">
       <div class="receipt-row"><span>Cambio</span><strong id="payment-change">$0</strong></div>

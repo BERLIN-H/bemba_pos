@@ -14,7 +14,7 @@ class LoginTests(TestCase):
 
     def test_login_sends_each_role_to_its_own_panel(self):
         expected = {
-            'admin': 'dashboard', 'manager': 'dashboard', 'cashier': 'cashier_panel',
+            'manager': 'dashboard', 'cashier': 'cashier_panel',
             'waiter': 'waiter_panel', 'chef': 'kitchen',
         }
         for role, panel in expected.items():
@@ -59,7 +59,6 @@ class RoleAccessMatrixTests(TestCase):
 
     EXPECTED = {
         #            pos  kitchen inventory reports staff
-        'admin':   (200, 200, 200, 200, 200),
         'manager': (200, 200, 200, 200, 200),
         'cashier': (200, 403, 403, 403, 403),
         'waiter':  (200, 403, 403, 403, 403),
@@ -80,7 +79,7 @@ class RoleAccessMatrixTests(TestCase):
     def test_full_dashboard_with_sales_is_only_for_admin_and_manager(self):
         for role, user in self.a['users'].items():
             self.client.force_login(user)
-            expected = 200 if role in ('admin', 'manager') else 403
+            expected = 200 if role == 'manager' else 403
             self.assertEqual(self.client.get(reverse('dashboard')).status_code, expected, role)
 
     def test_role_panels_are_not_shared(self):
@@ -133,7 +132,7 @@ class StaffManagementTests(TestCase):
 
     def test_manager_cannot_create_admin(self):
         self.client.force_login(self.a['users']['manager'])
-        r = self._create(role='admin')
+        r = self._create(role='platform_admin')
         self.assertEqual(r.status_code, 200)
         self.assertFalse(User.objects.filter(username='nuevo').exists())
 
@@ -165,5 +164,5 @@ class StaffManagementTests(TestCase):
         r = c.post('/api/users/', {'username': 'x1', 'password': 'Clave-Segura-123', 'role': 'waiter', 'restaurant': self.b['restaurant'].id}, format='json')
         self.assertEqual(r.status_code, 201, r.content)
         self.assertEqual(User.objects.get(username='x1').restaurant, self.a['restaurant'])
-        r = c.post('/api/users/', {'username': 'x2', 'password': 'Clave-Segura-123', 'role': 'admin'}, format='json')
+        r = c.post('/api/users/', {'username': 'x2', 'password': 'Clave-Segura-123', 'role': 'platform_admin'}, format='json')
         self.assertEqual(r.status_code, 400)

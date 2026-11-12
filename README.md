@@ -5,8 +5,8 @@ Sistema POS para restaurantes construido con Python, Django, Django REST Framewo
 ## Módulos
 
 - Login y autenticación con usuario personalizado (los empleados desactivados no pueden ingresar, ni por web ni por JWT).
-- Roles: administrador, gerente, cajero, mesero y cocina, con permisos por módulo.
-- Paneles separados por rol: dashboard completo (administrador/gerente), panel de caja, panel de mesero y tablero de cocina. Cada usuario inicia en su pantalla y no ve cifras que no le corresponden.
+- Roles: administrador global de plataforma, gerente por restaurante, cajero, mesero y cocina, con permisos por módulo.
+- El administrador global puede gestionar todos los restaurantes y planes. Cada gerente solo administra la operación de su restaurante.
 - Zonas y mesas con estados (disponible, ocupada, limpieza).
 - Punto de venta con ticket visual, cobro y transferencia de mesa.
 - Pedidos con estados operativos y comandas de cocina.
@@ -27,14 +27,14 @@ python manage.py seed_demo      # datos de demostración + un usuario por rol
 python manage.py runserver
 ```
 
-Abrir <http://127.0.0.1:8000/>. `seed_demo` crea **3 restaurantes de prueba** (Bemba Demo, Sabor Wayuu y Pizzería Don Luigi), cada uno con administrador, gerente, cajero, dos meseros y cocina, menú con recetas, inventario, una semana de ventas y un estado en vivo (pedidos en cocina, mesas ocupadas, un pedido de cliente por confirmar). Además crea el superusuario `superadmin_demo`, que crea y suspende restaurantes desde **Restaurantes**.
+Abrir <http://127.0.0.1:8000/>. `seed_demo` crea **3 restaurantes de prueba** (Bemba Demo, Sabor Wayuu y Pizzería Don Luigi), cada uno con gerente, cajero, dos meseros y cocina, menú con recetas, inventario, una semana de ventas y un estado en vivo. También crea `superadmin_demo`, administrador global que gestiona todos los restaurantes y sus planes.
 
 La lista completa de usuarios y de qué se puede probar con cada uno está en **DATOS_DE_PRUEBA.md**. Contraseña de todos: `Bemba2026*`. Ejemplos:
 
 | Usuario | Rol | Inicio |
 |---|---|---|
-| `superadmin_demo` | Administrador de la plataforma | Restaurantes (crear, suspender) |
-| `admin_demo` / `gerente_demo` | Administrador / gerente | Dashboard con ventas y gráficas |
+| `superadmin_demo` | Administrador global de la plataforma | Resumen global, restaurantes y planes |
+| `gerente_demo` | Gerente de Bemba Demo | Dashboard y operación de Bemba Demo |
 | `cajero_demo` | Cajero | Panel de caja |
 | `mesero_demo` | Mesero | Panel de mesero |
 | `cocina_demo` | Cocina | Tablero de comandas |
@@ -53,7 +53,7 @@ python manage.py createsuperuser
 
 ## Carta digital por QR para el cliente
 
-1. Entra como administrador o gerente a **Mesas → Códigos QR de las mesas** (`/restaurant/tables/qr/`) e imprime el código de cada mesa.
+1. Entra como gerente o administrador global a **Mesas → Códigos QR de las mesas** (`/restaurant/tables/qr/`) e imprime el código de cada mesa.
 2. El cliente escanea el QR y ve la carta de su restaurante (solo productos disponibles), sin iniciar sesión.
 3. Estados de la mesa:
 
@@ -73,7 +73,7 @@ Disponible → Pendiente (escanearon el QR) → Ocupada (se hizo un pedido) → 
 
 ### Qué hace el personal
 
-- El menú **Solicitudes** (con contador rojo) muestra los pedidos por confirmar y los llamados de mesa; se actualiza solo. Disponible para administrador, gerente, cajero y mesero.
+- El menú **Solicitudes** (con contador rojo) muestra los pedidos por confirmar y los llamados de mesa; se actualiza solo. Disponible para gerente, cajero y mesero.
 - **Confirmar** crea el pedido real (a nombre del mesero que confirma) y lo manda directo a cocina; **Rechazar** deja un motivo que el cliente ve.
 - En un llamado de *cuenta*, el tablero muestra los pedidos abiertos de la mesa con botón para cobrar.
 
@@ -129,7 +129,7 @@ Cubren el flujo completo (pedido, cocina, pago e inventario), permisos por rol, 
 - Los pagos y los movimientos de stock son registros históricos: se crean y consultan, no se editan ni se eliminan por la API.
 - Un pedido solo pasa a *pagado* registrando su pago; cocina solo puede marcar *preparando* o *listo*.
 - Meseros y cajeros no pueden crear ni borrar zonas, mesas, planes ni restaurantes.
-- Un gerente no puede crear administradores ni usuarios en otro restaurante.
+- Un gerente no puede crear administradores de plataforma ni usuarios en otro restaurante.
 
 ## Próximos pasos posibles
 

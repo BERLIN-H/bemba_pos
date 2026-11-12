@@ -166,7 +166,7 @@ class TableQRPagesTests(TestCase):
         self.b = make_restaurant('Restaurante B', 'b')
 
     def test_only_admin_and_manager_can_see_qr_pages(self):
-        expected = {'admin': 200, 'manager': 200, 'cashier': 403, 'waiter': 403, 'chef': 403}
+        expected = {'manager': 200, 'cashier': 403, 'waiter': 403, 'chef': 403}
         for role, status in expected.items():
             self.client.force_login(self.a['users'][role])
             self.assertEqual(self.client.get(reverse('tables_qr')).status_code, status, role)

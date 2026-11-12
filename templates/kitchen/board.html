@@ -31,6 +31,7 @@
 
       <div class="ticket-card__items">
         {% for item in ticket.order.items.all %}
+        {% if item.sent_to_kitchen and not item.kitchen_delivered %}
         <div class="ticket-item">
           <span class="item-qty">{{ item.quantity }}</span>
           <div class="item-details">
@@ -38,6 +39,7 @@
             {% if item.notes %}<small>{{ item.notes }}</small>{% endif %}
           </div>
         </div>
+        {% endif %}
         {% endfor %}
       </div>
 
@@ -47,7 +49,7 @@
         {% elif ticket.order.status == 'preparing' %}
         <button type="button" class="btn ticket-action-btn" data-order-id="{{ ticket.order.id }}" data-status="ready">Marcar listo</button>
         {% elif ticket.order.status == 'ready' %}
-        <a class="btn ticket-action-btn" href="{% url 'checkout' ticket.order.id %}">Cobrar pedido</a>
+        <button type="button" class="btn ticket-action-btn" data-order-id="{{ ticket.order.id }}" data-status="served">Marcar entregado</button>
         {% elif ticket.order.status == 'paid' %}
         <span class="badge bg-success">Pagado</span>
         {% endif %}

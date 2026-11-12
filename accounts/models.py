@@ -4,7 +4,8 @@ from django.db import models
 
 class User(AbstractUser):
     class Role(models.TextChoices):
-        ADMIN = 'admin', 'Administrador'
+        PLATFORM_ADMIN = 'platform_admin', 'Administrador de plataforma'
+        RESTAURANT_ADMIN = 'restaurant_admin', 'Administrador del restaurante'
         MANAGER = 'manager', 'Gerente'
         CASHIER = 'cashier', 'Cajero'
         WAITER = 'waiter', 'Mesero'
@@ -15,6 +16,13 @@ class User(AbstractUser):
     branch = models.ForeignKey('restaurant.Branch', on_delete=models.PROTECT, related_name='users', blank=True, null=True)
     phone = models.CharField(max_length=30, blank=True)
     is_active_employee = models.BooleanField(default=True)
+
+    def save(self, *args, **kwargs):
+        if self.is_superuser:
+            self.role = self.Role.PLATFORM_ADMIN
+        elif self.role == self.Role.PLATFORM_ADMIN:
+            self.role = self.Role.MANAGER
+        super().save(*args, **kwargs)
 
     def has_role(self, *roles):
         return self.is_superuser or self.role in roles

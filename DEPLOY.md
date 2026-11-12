@@ -74,10 +74,10 @@ Operación: `systemctl status bemba caddy` muestra el estado y ambos servicios s
 
 Los restaurantes los crea el **superusuario de la plataforma** (`superadmin_demo` en los datos de prueba). Al iniciar sesión cae en **Restaurantes** (`/plataforma/`), donde puede:
 
-- **Crear restaurante:** nombre, plan, cantidad de mesas y el usuario administrador. El sistema crea la sede principal, una zona «Salón», las mesas (cada una con su código QR) y el administrador.
+- **Crear restaurante:** nombre, plan, cantidad de mesas y el usuario gerente. El sistema crea la sede principal, una zona «Salón», las mesas (cada una con su código QR) y el gerente.
 - **Suspender o activar** un restaurante. Un restaurante suspendido no puede iniciar sesión ni mostrar su carta pública.
 
-El administrador del restaurante entra con su usuario y crea al resto del personal (gerente, cajero, meseros, cocina) desde **Empleados**.
+El gerente del restaurante entra con su usuario y crea al resto del personal (cajero, meseros y cocina) desde **Empleados**.
 
 ## Capacidad (medición orientativa)
 

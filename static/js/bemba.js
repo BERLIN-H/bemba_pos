@@ -2,6 +2,9 @@ const cart = document.querySelector('#cart');
 const cartItems = [];
 const sendKitchenButton = document.querySelector('#send-kitchen');
 const tableSelect = document.querySelector('#table-select');
+const customerNameInput = document.querySelector('#customer-name');
+const customerDocumentInput = document.querySelector('#customer-document');
+const customerPhoneInput = document.querySelector('#customer-phone');
 const posMessage = document.querySelector('#pos-message');
 const cartSummary = document.querySelector('#cart-summary');
 const saveHoldButton = document.querySelector('#save-hold');
@@ -11,6 +14,13 @@ const transferTableButton = document.querySelector('#transfer-table');
 const menuSearch = document.querySelector('#menu-search');
 const categoryFilters = document.querySelectorAll('.pos-menu .filter-pill');
 const inventorySearch = document.querySelector('.inventory-search');
+
+tableSelect?.addEventListener('change', () => {
+  const option = tableSelect.selectedOptions[0];
+  if (customerNameInput) customerNameInput.value = option?.dataset.customerName || '';
+  if (customerDocumentInput) customerDocumentInput.value = option?.dataset.customerDocument || '';
+  if (customerPhoneInput) customerPhoneInput.value = option?.dataset.customerPhone || '';
+});
 
 function getCookie(name) {
   const value = `; ${document.cookie}`;
@@ -25,6 +35,18 @@ function money(value) {
     currency: 'COP',
     minimumFractionDigits: 0,
   });
+}
+
+function parseLocalizedAmount(value) {
+  const normalized = String(value || '')
+    .replace(/[^\d,.-]/g, '')
+    .replace(/\./g, '')
+    .replace(',', '.');
+  return Number(normalized || 0);
+}
+
+function formatGroupedAmount(value) {
+  return Math.round(Number(value) || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 });
 }
 
 function escapeHtml(value) {
@@ -203,6 +225,9 @@ if (sendKitchenButton) {
         },
         body: JSON.stringify({
           table: Number(tableSelect.value),
+          customer_name: customerNameInput?.value.trim() || '',
+          customer_document: customerDocumentInput?.value.trim() || '',
+          customer_phone: customerPhoneInput?.value.trim() || '',
           items: cartItems.map((item) => ({
             menu_item: item.id,
             quantity: item.quantity,
@@ -231,6 +256,9 @@ if (sendKitchenButton) {
 
       cartItems.length = 0;
       renderCart();
+      if (customerNameInput) customerNameInput.value = '';
+      if (customerDocumentInput) customerDocumentInput.value = '';
+      if (customerPhoneInput) customerPhoneInput.value = '';
       setPosMessage(`Pedido #${order.id} enviado a cocina. <a href="/kitchen/">Ver cocina</a> · <a href="/pos/checkout/${order.id}/">Cobrar</a>`, 'success');
     } catch (error) {
       setPosMessage(readableError(error, 'No se pudo enviar el pedido. Revisa la mesa y los productos.'), 'danger');
@@ -406,7 +434,7 @@ function initKitchenActions() {
       } catch (error) {
         console.error(error);
         button.disabled = false;
-        button.textContent = status === 'ready' ? 'Marcar listo' : 'Marcar preparando';
+        button.textContent = ({ preparing: 'Marcar preparando', ready: 'Marcar listo', served: 'Marcar entregado' })[status] || 'Actualizar pedido';
       }
     });
   }
@@ -560,6 +588,8 @@ function initDashboardCharts() {
 const checkoutForm = document.querySelector('#checkout-form');
 
 if (checkoutForm) {
+  const paymentMethod = checkoutForm.querySelector('[name="method"]');
+  const transferInfo = document.querySelector('#transfer-info');
   const amountInput = checkoutForm.querySelector('[name="amount"]');
   const receivedInput = checkoutForm.querySelector('[name="received"]');
   const changeOutput = checkoutForm.querySelector('#payment-change');
@@ -568,12 +598,25 @@ if (checkoutForm) {
 
   function updateChange() {
     const amount = Number(amountInput.value || 0);
-    const received = Number(receivedInput.value || 0);
+    const received = parseLocalizedAmount(receivedInput.value);
     changeOutput.textContent = money(Math.max(received - amount, 0));
   }
 
+  function toggleTransferInfo() {
+    if (transferInfo) transferInfo.hidden = paymentMethod.value !== 'transfer';
+  }
+
   receivedInput.addEventListener('input', updateChange);
+  receivedInput.addEventListener('focus', () => {
+    receivedInput.value = receivedInput.value.replace(/\./g, '').replace(',', '.');
+  });
+  receivedInput.addEventListener('blur', () => {
+    receivedInput.value = formatGroupedAmount(parseLocalizedAmount(receivedInput.value));
+  });
+  paymentMethod.addEventListener('change', toggleTransferInfo);
   updateChange();
+  receivedInput.value = formatGroupedAmount(parseLocalizedAmount(receivedInput.value));
+  toggleTransferInfo();
 
   checkoutForm.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -592,7 +635,7 @@ if (checkoutForm) {
           order: Number(checkoutForm.dataset.orderId),
           method: checkoutForm.querySelector('[name="method"]').value,
           amount: Number(amountInput.value),
-          received: Number(receivedInput.value),
+          received: parseLocalizedAmount(receivedInput.value),
           reference: checkoutForm.querySelector('[name="reference"]').value,
         }),
       });
@@ -626,6 +669,16 @@ if (checkoutForm) {
 }
 
 renderCart();
+document.querySelectorAll('.js-money').forEach((element) => {
+  element.textContent = money(element.dataset.value || 0);
+});
+document.querySelectorAll('.table-card').forEach((card) => {
+  card.addEventListener('click', (event) => {
+    if (event.target.closest('a, button, form, summary')) return;
+    const details = card.querySelector('details');
+    if (details) details.open = !details.open;
+  });
+});
 initMenuFilters();
 initInventorySearch();
 initKeyboardShortcuts();

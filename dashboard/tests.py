@@ -55,5 +55,5 @@ class RolePanelContentTests(TestCase):
         self.assertEqual(self.client.get(reverse('cashier_panel')).context['pending_count'], 1)
 
     def test_admin_dashboard_still_shows_sales(self):
-        self.client.force_login(self.a['users']['admin'])
+        self.client.force_login(self.a['users']['manager'])
         self.assertContains(self.client.get(reverse('dashboard')), 'Ticket promedio')

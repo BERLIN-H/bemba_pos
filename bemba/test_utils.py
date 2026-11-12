@@ -19,7 +19,7 @@ def make_restaurant(name='Restaurante A', suffix='a'):
     tables = [DiningTable.objects.create(zone=zone, number=str(i), seats=4) for i in range(1, 4)]
 
     users = {}
-    for role in ('admin', 'manager', 'cashier', 'waiter', 'chef'):
+    for role in ('manager', 'cashier', 'waiter', 'chef'):
         users[role] = User.objects.create_user(
             username=f'{role}_{suffix}', password=PASSWORD, role=role,
             restaurant=restaurant, branch=branch, first_name=role.capitalize(), last_name=suffix.upper(),

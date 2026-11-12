@@ -4,6 +4,7 @@ from inventory.views import (
     alerts,
     alert_action,
     inventory,
+    menu_management,
     purchase_order_create,
     purchase_order_detail,
     purchase_orders,
@@ -13,6 +14,7 @@ from inventory.views import (
 
 urlpatterns = [
     path('', inventory, name='inventory'),
+    path('menu/', menu_management, name='inventory_menu'),
     path('alerts/', alerts, name='inventory_alerts'),
     path('alerts/action/', alert_action, name='inventory_alert_action'),
     path('suppliers/', suppliers, name='inventory_suppliers'),

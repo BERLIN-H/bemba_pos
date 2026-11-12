@@ -6,7 +6,7 @@ from rest_framework import serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from accounts.permissions import IsAdminOrManager, IsOrderStaff, IsPOSStaff
+from accounts.permissions import IsManagerOrPlatformAdmin, IsOrderStaff, IsPOSStaff
 from kitchen.models import KitchenTicket
 from restaurant.models import DiningTable
 from restaurant.tenancy import same_tenant, scoped_queryset
@@ -16,7 +16,7 @@ from sales.services import consume_order_inventory, stock_shortages
 OPEN_STATUSES = [
     Order.Status.OPEN, Order.Status.SENT, Order.Status.PREPARING, Order.Status.READY, Order.Status.SERVED,
 ]
-CHEF_ALLOWED_STATUSES = {Order.Status.PREPARING, Order.Status.READY}
+CHEF_ALLOWED_STATUSES = {Order.Status.PREPARING, Order.Status.READY, Order.Status.SERVED}
 KITCHEN_STATUS_MAP = {
     Order.Status.SENT: KitchenTicket.Status.PENDING,
     Order.Status.PREPARING: KitchenTicket.Status.PREPARING,
@@ -45,8 +45,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OrderItem
-        fields = ['id', 'menu_item', 'menu_item_name', 'quantity', 'unit_price', 'tax_rate', 'notes', 'sent_to_kitchen']
-        read_only_fields = ['unit_price', 'tax_rate', 'sent_to_kitchen']
+        fields = ['id', 'menu_item', 'menu_item_name', 'quantity', 'unit_price', 'tax_rate', 'notes', 'sent_to_kitchen', 'kitchen_delivered']
+        read_only_fields = ['unit_price', 'tax_rate', 'sent_to_kitchen', 'kitchen_delivered']
 
     def validate_quantity(self, value):
         if value < 1:
@@ -67,7 +67,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ['id', 'table', 'table_number', 'waiter', 'waiter_name', 'status', 'subtotal', 'tax', 'discount', 'total', 'notes', 'created_at', 'closed_at', 'items']
+        fields = ['id', 'table', 'table_number', 'waiter', 'waiter_name', 'customer_name', 'customer_document', 'customer_phone', 'status', 'subtotal', 'tax', 'discount', 'total', 'notes', 'created_at', 'closed_at', 'items']
         read_only_fields = ['waiter', 'subtotal', 'tax', 'total', 'created_at', 'closed_at']
 
     @property
@@ -127,12 +127,21 @@ class OrderSerializer(serializers.ModelSerializer):
         items_data = validated_data.pop('items')
         user = self._user
         table = validated_data.get('table')
-        order = Order.objects.create(
-            waiter=user,
-            restaurant=getattr(user, 'restaurant', None) or getattr(getattr(table.zone, 'branch', None), 'restaurant', None),
-            branch=getattr(table.zone, 'branch', None),
-            **validated_data,
-        )
+        table = DiningTable.objects.select_for_update().get(pk=table.pk)
+        order = Order.objects.select_for_update().filter(table=table, status__in=OPEN_STATUSES).order_by('-created_at').first()
+        if order:
+            order.customer_name = validated_data.get('customer_name') or order.customer_name
+            order.customer_document = validated_data.get('customer_document') or order.customer_document
+            order.customer_phone = validated_data.get('customer_phone') or order.customer_phone
+            order.notes = validated_data.get('notes', order.notes)
+            order.save(update_fields=['customer_name', 'customer_document', 'customer_phone', 'notes'])
+        else:
+            order = Order.objects.create(
+                waiter=user,
+                restaurant=getattr(user, 'restaurant', None) or getattr(getattr(table.zone, 'branch', None), 'restaurant', None),
+                branch=getattr(table.zone, 'branch', None),
+                **validated_data,
+            )
         for row in items_data:
             menu_item = row['menu_item']
             row.pop('unit_price', None)
@@ -164,13 +173,14 @@ class OrderSerializer(serializers.ModelSerializer):
         if new_status != old_status:
             if new_status in KITCHEN_STATUS_MAP:
                 KitchenTicket.objects.filter(order=instance).update(status=KITCHEN_STATUS_MAP[new_status])
+            if new_status == Order.Status.SERVED:
+                instance.items.filter(sent_to_kitchen=True, kitchen_delivered=False).update(kitchen_delivered=True)
             if new_status == Order.Status.PREPARING:
                 consume_order_inventory(instance)
             if new_status == Order.Status.CANCELLED:
                 release_table_if_free(instance.table, excluding_order=instance)
 
         if items_data is not None:
-            instance.items.all().delete()
             for row in items_data:
                 menu_item = row['menu_item']
                 row.pop('unit_price', None)
@@ -232,7 +242,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         if self.action in ('list', 'retrieve', 'partial_update'):
             return [IsOrderStaff()]  # cocina necesita ver y avanzar pedidos
         if self.action == 'destroy':
-            return [IsAdminOrManager()]
+            return [IsManagerOrPlatformAdmin()]
         return [IsPOSStaff()]
 
     def get_queryset(self):
@@ -241,14 +251,19 @@ class OrderViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def send_to_kitchen(self, request, pk=None):
         order = self.get_object()
-        if order.status != Order.Status.OPEN:
-            return Response({'detail': 'Solo se pueden enviar a cocina pedidos abiertos.'}, status=400)
-        if not order.items.exists():
+        if not request.user.is_superuser and request.user.role != 'waiter':
+            return Response({'detail': 'Solo el mesero puede enviar pedidos a cocina.'}, status=403)
+        if order.status in (Order.Status.PAID, Order.Status.CANCELLED):
+            return Response({'detail': 'La cuenta ya estÃ¡ cerrada.'}, status=400)
+        unsent_items = order.items.filter(sent_to_kitchen=False)
+        if not unsent_items.exists():
             return Response({'detail': 'El pedido no tiene productos.'}, status=400)
         order.status = Order.Status.SENT
         order.save(update_fields=['status'])
-        order.items.update(sent_to_kitchen=True)
-        KitchenTicket.objects.get_or_create(order=order)
+        unsent_items.update(sent_to_kitchen=True)
+        ticket, _ = KitchenTicket.objects.get_or_create(order=order)
+        ticket.status = KitchenTicket.Status.PENDING
+        ticket.save(update_fields=['status', 'updated_at'])
         return Response({'status': order.status})
 
 

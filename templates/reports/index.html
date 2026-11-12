@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load money %}
 {% block title %}Reportes | Bemba{% endblock %}
 {% block heading %}Reportes{% endblock %}
 {% block content %}
@@ -21,21 +22,21 @@
 </form>
 
 <section class="metric-grid">
-  <article class="metric"><span>Total vendido</span><strong>${{ total }}</strong></article>
+  <article class="metric"><span>Total vendido</span><strong>{{ total|money }}</strong></article>
   <article class="metric"><span>Transacciones</span><strong>{{ transactions }}</strong></article>
-  <article class="metric"><span>Ticket promedio</span><strong>{% if transactions %}${% widthratio total transactions 1 %}{% else %}$0{% endif %}</strong></article>
+  <article class="metric"><span>Ticket promedio</span><strong>{{ total|average_money:transactions }}</strong></article>
   <article class="metric"><span>Periodo</span><strong>{% if date_from or date_to %}Filtrado{% else %}General{% endif %}</strong></article>
 </section>
 
 <section class="insights-panel">
   <article class="insight-card">
     <span class="insight-label">Resumen rápido</span>
-    <strong>${{ total }}</strong>
+    <strong>{{ total|money }}</strong>
     <small>{{ transactions }} ventas en el período seleccionado.</small>
   </article>
   <article class="insight-card">
     <span class="insight-label">Promedio por pedido</span>
-    <strong>{% if transactions %}${% widthratio total transactions 1 %}{% else %}$0{% endif %}</strong>
+    <strong>{{ total|average_money:transactions }}</strong>
     <small>Usa este valor para ajustar menú y tiempos de servicio.</small>
   </article>
 </section>
@@ -46,7 +47,7 @@
     {% for row in method_totals %}
     <article class="report-card">
       <span>{{ row.method|title }}</span>
-      <strong>${{ row.total }}</strong>
+      <strong>{{ row.total|money }}</strong>
       <small>{{ row.count }} transacciones</small>
     </article>
     {% empty %}
@@ -73,7 +74,7 @@
           <td>Mesa {{ payment.order.table.number }}</td>
           <td>{{ payment.get_method_display }}</td>
           <td>{{ payment.cashier }}</td>
-          <td>${{ payment.amount }}</td>
+          <td>{{ payment.amount|money }}</td>
           <td>{{ payment.created_at|date:'Y-m-d H:i' }}</td>
           <td><a class="btn btn-sm btn-outline-dark" href="{% url 'ticket' payment.order_id %}">Ver ticket</a></td>
         </tr>

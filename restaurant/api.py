@@ -54,7 +54,7 @@ class DiningTableSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         # Meseros y cajeros solo pueden cambiar el estado de la mesa (p. ej. limpieza -> disponible).
         user = self.context['request'].user
-        if self.instance is not None and not user.is_superuser and user.role not in ('admin', 'manager'):
+        if self.instance is not None and not user.is_superuser and user.role != 'manager':
             if set(self.initial_data.keys()) - {'status'}:
                 raise serializers.ValidationError('Solo puedes cambiar el estado de la mesa.')
         return attrs

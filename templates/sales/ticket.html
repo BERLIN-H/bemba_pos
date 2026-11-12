@@ -1,24 +1,29 @@
 {% extends 'base.html' %}
+{% load money %}
 {% block title %}Ticket #{{ order.id }} | Bemba{% endblock %}
 {% block heading %}Ticket de venta{% endblock %}
 {% block content %}
 <section class="receipt">
   <h2>Bemba POS</h2>
-  <p>Pedido #{{ order.id }} - Mesa {{ order.table.number }}</p>
+  <p>Cuenta #{{ order.id }} - Mesa {{ order.table.number }}</p>
+  {% if order.customer_name %}<p>Cliente: {{ order.customer_name }}</p>{% endif %}
+  {% if order.customer_document %}<p>Documento: {{ order.customer_document }}</p>{% endif %}
+  {% if order.customer_phone %}<p>Teléfono: {{ order.customer_phone }}</p>{% endif %}
   {% if order.payment %}
   <p>Pago: {{ order.payment.get_method_display }} - Cajero: {{ order.payment.cashier }}</p>
   {% endif %}
   {% for item in order.items.all %}
-  <div class="receipt-row"><span>{{ item.quantity }} x {{ item.menu_item.name }}</span><strong>${{ item.line_subtotal }}</strong></div>
+  <div class="receipt-row"><span>{{ item.quantity }} x {{ item.menu_item.name }}</span><strong>{{ item.line_subtotal|money }}</strong></div>
   {% endfor %}
   <hr>
-  <div class="receipt-row"><span>Subtotal</span><strong>${{ order.subtotal }}</strong></div>
-  <div class="receipt-row"><span>Impuestos</span><strong>${{ order.tax }}</strong></div>
-  <div class="receipt-row total"><span>Total</span><strong>${{ order.total }}</strong></div>
+  <div class="receipt-row"><span>Subtotal</span><strong>{{ order.subtotal|money }}</strong></div>
+  <div class="receipt-row"><span>Impuestos</span><strong>{{ order.tax|money }}</strong></div>
+  <div class="receipt-row total"><span>Total</span><strong>{{ order.total|money }}</strong></div>
   {% if order.payment %}
-  <div class="receipt-row"><span>Recibido</span><strong>${{ order.payment.received }}</strong></div>
-  <div class="receipt-row"><span>Cambio</span><strong>${{ order.payment.change }}</strong></div>
+  <div class="receipt-row"><span>Recibido</span><strong>{{ order.payment.received|money }}</strong></div>
+  <div class="receipt-row"><span>Cambio</span><strong>{{ order.payment.change|money }}</strong></div>
   {% endif %}
   <button class="btn btn-outline-dark mt-3" onclick="window.print()">Imprimir</button>
 </section>
+{% if order.payment %}<script>window.addEventListener('load', () => window.print());</script>{% endif %}
 {% endblock %}
