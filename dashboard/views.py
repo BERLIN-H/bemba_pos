@@ -33,7 +33,7 @@ def filter_by_day(queryset, field_name, day):
 
 
 ROLE_HOME = {
-    'admin': 'dashboard',
+    'platform_admin': 'platform_restaurants',
     'manager': 'dashboard',
     'cashier': 'cashier_panel',
     'waiter': 'waiter_panel',
@@ -50,7 +50,7 @@ def home(request):
 
 
 @login_required
-@role_required('admin', 'manager')
+@role_required('manager')
 def dashboard(request):
     today = timezone.localdate()
     week_start = today - timezone.timedelta(days=6)

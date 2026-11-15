@@ -12,11 +12,15 @@ from restaurant.tenancy import scoped_queryset
 
 
 def assignable_roles(user):
-    """Roles que el usuario actual puede asignar. Solo un administrador (o superusuario) crea administradores."""
-    roles = User.Role.choices
-    if user.is_superuser or user.role == User.Role.ADMIN:
-        return roles
-    return [(value, label) for value, label in roles if value != User.Role.ADMIN]
+    """Solo el administrador del restaurante puede designar a otra persona administradora."""
+    allowed = {User.Role.PLATFORM_ADMIN}
+    if user.role != User.Role.RESTAURANT_ADMIN:
+        allowed.add(User.Role.RESTAURANT_ADMIN)
+    return [(value, label) for value, label in User.Role.choices if value not in allowed]
+
+
+def can_manage_restaurant_staff(user):
+    return user.is_authenticated and not user.is_superuser and user.role in (User.Role.MANAGER, User.Role.RESTAURANT_ADMIN)
 
 
 class BembaLoginView(LoginView):
@@ -30,7 +34,7 @@ class BembaLogoutView(LogoutView):
 @login_required
 def staff_list(request):
     """Listar empleados del restaurante del usuario"""
-    if not request.user.has_role('admin', 'manager'):
+    if not can_manage_restaurant_staff(request.user):
         return render(request, 'error.html', {'message': 'No tienes permiso para acceder aquí.'}, status=403)
     
     users = scoped_queryset(User.objects.all(), request.user).exclude(is_superuser=True).select_related('branch')
@@ -45,7 +49,7 @@ def staff_list(request):
 @login_required
 def staff_create(request):
     """Crear nuevo empleado"""
-    if not request.user.has_role('admin', 'manager'):
+    if not can_manage_restaurant_staff(request.user):
         return render(request, 'error.html', {'message': 'No tienes permiso para acceder aquí.'}, status=403)
     
     if request.method == 'POST':
@@ -98,7 +102,7 @@ def staff_create(request):
 @login_required
 def staff_edit(request, pk):
     """Editar empleado"""
-    if not request.user.has_role('admin', 'manager'):
+    if not can_manage_restaurant_staff(request.user):
         return render(request, 'error.html', {'message': 'No tienes permiso para acceder aquí.'}, status=403)
     
     user = get_object_or_404(
@@ -147,7 +151,7 @@ def staff_edit(request, pk):
 @require_POST
 def staff_delete(request, pk):
     """Eliminar empleado (desactivar)"""
-    if not request.user.has_role('admin', 'manager'):
+    if not can_manage_restaurant_staff(request.user):
         return render(request, 'error.html', {'message': 'No tienes permiso para acceder aquí.'}, status=403)
     
     user = get_object_or_404(
@@ -167,7 +171,7 @@ def staff_delete(request, pk):
 @require_POST
 def staff_activate(request, pk):
     """Activar empleado"""
-    if not request.user.has_role('admin', 'manager'):
+    if not can_manage_restaurant_staff(request.user):
         return render(request, 'error.html', {'message': 'No tienes permiso para acceder aquí.'}, status=403)
     
     user = get_object_or_404(

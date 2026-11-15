@@ -249,7 +249,7 @@ class StaffConfirmationTests(CustomerBase):
         self.assertContains(r, 'con prisa')
 
     def test_only_pos_staff_see_board(self):
-        for role, status in {'admin': 200, 'manager': 200, 'cashier': 200, 'waiter': 200, 'chef': 403}.items():
+        for role, status in {'manager': 200, 'cashier': 200, 'waiter': 200, 'chef': 403}.items():
             self.client.force_login(self.a['users'][role])
             self.assertEqual(self.client.get(reverse('requests_board')).status_code, status, role)
 

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load money %}
 {% block title %}Órdenes de compra | Bemba{% endblock %}
 {% block heading %}Órdenes de compra{% endblock %}
 {% block content %}
@@ -17,7 +18,7 @@
     </div>
     <div>
       <small>{{ po.get_status_display }}</small>
-      <div>Total: ${{ po.total }}</div>
+      <div>Total: {{ po.total|money }}</div>
     </div>
     <div>
       <a class="btn btn-sm btn-outline-secondary" href="{% url 'inventory_purchase_order_detail' po.id %}">Ver</a>

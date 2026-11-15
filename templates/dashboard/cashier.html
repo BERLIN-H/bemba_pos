@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load money %}
 {% block title %}Panel de caja | Bemba{% endblock %}
 {% block heading %}Panel de caja{% endblock %}
 {% block content %}
@@ -11,7 +12,7 @@
 <section class="kitchen-summary">
   <article class="summary-chip"><span>Pedidos por cobrar</span><strong>{{ pending_count }}</strong></article>
   <article class="summary-chip"><span>Listos para cobrar</span><strong>{{ ready_count }}</strong></article>
-  <article class="summary-chip"><span>Cobrado por ti hoy</span><strong>${{ collected_total|floatformat:0 }}</strong></article>
+  <article class="summary-chip"><span>Cobrado por ti hoy</span><strong>{{ collected_total|money }}</strong></article>
   <article class="summary-chip"><span>Cobros realizados hoy</span><strong>{{ collected_count }}</strong></article>
 </section>
 
@@ -26,7 +27,7 @@
         <td>Mesa {{ order.table.number }}</td>
         <td>{{ order.waiter.get_full_name|default:order.waiter.username }}</td>
         <td><span class="status-pill status-pill--{{ order.status }}">{{ order.get_status_display }}</span></td>
-        <td class="text-end">${{ order.total|floatformat:0 }}</td>
+        <td class="text-end">{{ order.total|money }}</td>
         <td class="text-end"><a class="btn btn-sm btn-dark" href="{% url 'checkout' order.id %}">Cobrar</a></td>
       </tr>
       {% empty %}
@@ -41,13 +42,13 @@
   {% if methods %}
   <div class="mb-3">
     {% for m in methods %}
-    <div class="receipt-row"><span>{{ m.label }} ({{ m.count }})</span><strong>${{ m.total|floatformat:0 }}</strong></div>
+    <div class="receipt-row"><span>{{ m.label }} ({{ m.count }})</span><strong>{{ m.total|money }}</strong></div>
     {% endfor %}
   </div>
   <table class="table align-middle">
     <tbody>
       {% for p in recent_payments %}
-      <tr><td>Pedido #{{ p.order_id }} · Mesa {{ p.order.table.number }}</td><td>{{ p.get_method_display }}</td><td class="text-end">${{ p.amount|floatformat:0 }}</td><td class="text-end">{{ p.created_at|date:'H:i' }}</td></tr>
+      <tr><td>Pedido #{{ p.order_id }} · Mesa {{ p.order.table.number }}</td><td>{{ p.get_method_display }}</td><td class="text-end">{{ p.amount|money }}</td><td class="text-end">{{ p.created_at|date:'H:i' }}</td></tr>
       {% endfor %}
     </tbody>
   </table>

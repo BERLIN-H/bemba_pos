@@ -1,6 +1,6 @@
 from rest_framework import serializers, viewsets
 
-from accounts.permissions import IsAdminOrManager
+from accounts.permissions import IsInventoryModuleEnabled, IsManagerOrPlatformAdmin
 from inventory.models import Category, Ingredient, MenuItem, RecipeItem, StockMovement
 from restaurant.tenancy import same_tenant, scoped_queryset
 
@@ -9,6 +9,7 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = '__all__'
+        read_only_fields = ['restaurant']
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -17,6 +18,7 @@ class IngredientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ingredient
         fields = '__all__'
+        read_only_fields = ['restaurant']
 
 
 class RecipeItemSerializer(serializers.ModelSerializer):
@@ -81,7 +83,7 @@ class StockMovementSerializer(serializers.ModelSerializer):
     class Meta:
         model = StockMovement
         fields = '__all__'
-        read_only_fields = ['created_by', 'created_at']
+        read_only_fields = ['created_by', 'created_at', 'restaurant']
 
     def validate_quantity(self, value):
         if value <= 0:
@@ -112,7 +114,7 @@ class StockMovementSerializer(serializers.ModelSerializer):
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [IsAdminOrManager]
+    permission_classes = [IsManagerOrPlatformAdmin, IsInventoryModuleEnabled]
 
     def get_queryset(self):
         return scoped_queryset(super().get_queryset(), self.request.user)
@@ -124,7 +126,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class IngredientViewSet(viewsets.ModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    permission_classes = [IsAdminOrManager]
+    permission_classes = [IsManagerOrPlatformAdmin, IsInventoryModuleEnabled]
 
     def get_queryset(self):
         return scoped_queryset(super().get_queryset(), self.request.user)
@@ -136,7 +138,7 @@ class IngredientViewSet(viewsets.ModelViewSet):
 class MenuItemViewSet(viewsets.ModelViewSet):
     queryset = MenuItem.objects.select_related('category').prefetch_related('recipe__ingredient')
     serializer_class = MenuItemSerializer
-    permission_classes = [IsAdminOrManager]
+    permission_classes = [IsManagerOrPlatformAdmin, IsInventoryModuleEnabled]
 
     def get_queryset(self):
         return scoped_queryset(super().get_queryset(), self.request.user)
@@ -148,7 +150,7 @@ class MenuItemViewSet(viewsets.ModelViewSet):
 class StockMovementViewSet(viewsets.ModelViewSet):
     queryset = StockMovement.objects.select_related('ingredient', 'created_by')
     serializer_class = StockMovementSerializer
-    permission_classes = [IsAdminOrManager]
+    permission_classes = [IsManagerOrPlatformAdmin, IsInventoryModuleEnabled]
     http_method_names = ['get', 'post', 'head', 'options']  # historial inmodificable
 
     def get_queryset(self):

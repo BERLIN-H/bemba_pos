@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers, viewsets
 
-from accounts.permissions import IsAdminOrManager
+from accounts.permissions import IsManagerOrPlatformAdmin
 from restaurant.tenancy import scoped_queryset
 
 
@@ -17,14 +17,14 @@ class UserSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         request_user = self.context['request'].user
+        if attrs.get('role') == User.Role.PLATFORM_ADMIN:
+            raise serializers.ValidationError({'role': 'El administrador de plataforma se configura de forma protegida.'})
         if not request_user.is_superuser:
-            # Un gerente/administrador solo trabaja dentro de su restaurante y no crea administradores.
+            # El gerente solo crea y administra personal de su propio restaurante.
             attrs['restaurant'] = request_user.restaurant
             branch = attrs.get('branch')
             if branch is not None and branch.restaurant_id != request_user.restaurant_id:
                 raise serializers.ValidationError({'branch': 'La sucursal no existe.'})
-            if attrs.get('role') == User.Role.ADMIN and request_user.role != User.Role.ADMIN:
-                raise serializers.ValidationError({'role': 'No tienes permiso para crear administradores.'})
         return attrs
 
     def create(self, validated_data):
@@ -48,7 +48,7 @@ class UserSerializer(serializers.ModelSerializer):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by('username')
     serializer_class = UserSerializer
-    permission_classes = [IsAdminOrManager]
+    permission_classes = [IsManagerOrPlatformAdmin]
 
     def get_queryset(self):
         return scoped_queryset(super().get_queryset(), self.request.user).exclude(is_superuser=True) \

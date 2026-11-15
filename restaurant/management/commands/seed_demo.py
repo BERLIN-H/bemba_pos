@@ -37,7 +37,6 @@ PLANS = [
 ]
 
 STAFF = [  # clave de usuario, rol, nombre, apellido
-    ('admin', 'admin', 'Ana', 'Administradora'),
     ('gerente', 'manager', 'Gabriel', 'Gerente'),
     ('cajero', 'cashier', 'Carla', 'Cajera'),
     ('mesero', 'waiter', 'Mateo', 'Mesero'),
@@ -135,12 +134,15 @@ class Command(BaseCommand):
 
         superuser, created = User.objects.get_or_create(
             username=SUPERUSER,
-            defaults={'role': 'admin', 'first_name': 'Super', 'last_name': 'Administrador', 'email': 'super@bemba.test',
+            defaults={'role': 'platform_admin', 'first_name': 'Super', 'last_name': 'Administrador', 'email': 'super@bemba.test',
                       'is_staff': True, 'is_superuser': True},
         )
         if created:
             superuser.set_password(DEMO_PASSWORD)
-            superuser.save()
+        superuser.is_staff = True
+        superuser.is_superuser = True
+        superuser.role = User.Role.PLATFORM_ADMIN
+        superuser.save()
 
         self.stdout.write(self.style.SUCCESS('Datos de demostración listos.'))
         self.stdout.write(f'Contraseña de todos los usuarios: {DEMO_PASSWORD}')

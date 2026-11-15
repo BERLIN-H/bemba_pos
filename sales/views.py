@@ -15,23 +15,29 @@ from sales.services import CustomerOrderError, confirm_customer_order, expire_ol
 
 
 @login_required
-@role_required('admin', 'manager', 'cashier', 'waiter')
+@role_required('manager', 'cashier', 'waiter')
 def pos(request):
     tables = scoped_queryset(DiningTable.objects.filter(is_active=True), request.user, 'zone__branch__restaurant')
     release_expired_tables(tables)
+    tables = list(tables.select_related('zone__branch'))
     categories = scoped_queryset(Category.objects.filter(is_active=True), request.user)
     items = scoped_queryset(MenuItem.objects.filter(is_available=True), request.user)
-    open_orders = scoped_queryset(Order.objects.exclude(status__in=[Order.Status.PAID, Order.Status.CANCELLED]), request.user)
+    open_orders = scoped_queryset(Order.objects.exclude(status__in=[Order.Status.PAID, Order.Status.CANCELLED]), request.user).select_related('table')
+    orders_by_table = {}
+    for order in open_orders:
+        orders_by_table.setdefault(order.table_id, order)
+    for table in tables:
+        table.active_order = orders_by_table.get(table.id)
     return render(request, 'sales/pos.html', {
-        'tables': tables.select_related('zone__branch'),
+        'tables': tables,
         'categories': categories,
         'items': items.select_related('category'),
-        'open_orders': open_orders.select_related('table', 'waiter')[:12],
+        'open_orders': open_orders.select_related('waiter')[:12],
     })
 
 
 @login_required
-@role_required('admin', 'manager', 'cashier', 'waiter')
+@role_required('manager', 'cashier', 'waiter')
 def ticket(request, pk):
     orders = scoped_queryset(Order.objects.select_related('table', 'waiter').prefetch_related('items__menu_item'), request.user)
     order = get_object_or_404(orders, pk=pk)
@@ -39,20 +45,21 @@ def ticket(request, pk):
 
 
 @login_required
-@role_required('admin', 'manager', 'cashier', 'waiter')
+@role_required('manager', 'cashier', 'waiter')
 def checkout(request, pk):
     orders = scoped_queryset(Order.objects.select_related('table', 'waiter').prefetch_related('items__menu_item'), request.user)
     order = get_object_or_404(orders, pk=pk)
     tables = scoped_queryset(DiningTable.objects.filter(is_active=True), request.user, 'zone__branch__restaurant')
     return render(request, 'sales/checkout.html', {
         'order': order,
+        'restaurant': order.restaurant or getattr(getattr(order.table.zone, 'branch', None), 'restaurant', None),
         'payment_methods': Payment.Method.choices,
         'tables': tables.select_related('zone__branch'),
     })
 
 
 @login_required
-@role_required('admin', 'manager', 'cashier', 'waiter')
+@role_required('manager', 'cashier', 'waiter')
 def requests_board(request):
     """Pedidos enviados por clientes desde el QR y llamados de mesa (mesero / cuenta)."""
     customer_orders = scoped_queryset(CustomerOrder.objects.all(), request.user)
@@ -76,7 +83,7 @@ def requests_board(request):
 
 
 @login_required
-@role_required('admin', 'manager', 'cashier', 'waiter')
+@role_required('waiter')
 @require_POST
 def customer_order_confirm(request, pk):
     customer_order = get_object_or_404(scoped_queryset(CustomerOrder.objects.all(), request.user), pk=pk)
@@ -88,7 +95,7 @@ def customer_order_confirm(request, pk):
 
 
 @login_required
-@role_required('admin', 'manager', 'cashier', 'waiter')
+@role_required('manager', 'cashier', 'waiter')
 @require_POST
 def customer_order_reject(request, pk):
     customer_order = get_object_or_404(scoped_queryset(CustomerOrder.objects.all(), request.user), pk=pk)
@@ -103,7 +110,7 @@ def customer_order_reject(request, pk):
 
 
 @login_required
-@role_required('admin', 'manager', 'cashier', 'waiter')
+@role_required('manager', 'cashier', 'waiter')
 @require_POST
 def table_request_attend(request, pk):
     table_request = get_object_or_404(

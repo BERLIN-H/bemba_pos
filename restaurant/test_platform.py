@@ -23,7 +23,7 @@ class PlatformTests(TestCase):
         return data
 
     def test_only_superuser_can_open_platform_pages(self):
-        for user, expected in ((self.super, 200), (self.a['users']['admin'], 403), (self.a['users']['manager'], 403), (self.a['users']['waiter'], 403)):
+        for user, expected in ((self.super, 200), (self.a['users']['manager'], 403), (self.a['users']['waiter'], 403)):
             self.client.force_login(user)
             for name in ('platform_restaurants', 'platform_restaurant_create'):
                 self.assertEqual(self.client.get(reverse(name)).status_code, expected, f'{user.username} {name}')
@@ -34,7 +34,7 @@ class PlatformTests(TestCase):
         r = self.client.post(reverse('login'), {'username': 'root', 'password': PASSWORD}, follow=True)
         self.assertEqual(r.redirect_chain[-1][0], reverse('platform_restaurants'))
 
-    def test_create_restaurant_builds_branch_zone_tables_and_admin(self):
+    def test_create_restaurant_builds_branch_zone_tables_and_manager(self):
         self.client.force_login(self.super)
         r = self.client.post(reverse('platform_restaurant_create'), self.payload())
         restaurant = RestaurantAccount.objects.get(business_name='Café del Parque')
@@ -44,17 +44,17 @@ class PlatformTests(TestCase):
         self.assertEqual(DiningTable.objects.filter(zone__branch=branch).count(), 4)
         tokens = list(DiningTable.objects.filter(zone__branch=branch).values_list('qr_token', flat=True))
         self.assertEqual(len(set(tokens)), 4)
-        admin = User.objects.get(username='admin_cafe')
-        self.assertEqual((admin.role, admin.restaurant, admin.branch), ('admin', restaurant, branch))
+        manager = User.objects.get(username='admin_cafe')
+        self.assertEqual((manager.role, manager.restaurant, manager.branch), ('manager', restaurant, branch))
         self.assertContains(self.client.get(f"{reverse('platform_restaurants')}?creado={restaurant.pk}"), 'admin_cafe')
 
-    def test_new_restaurant_admin_can_log_in_and_sees_only_own_data(self):
+    def test_new_restaurant_manager_can_log_in_and_sees_only_own_data(self):
         self.client.force_login(self.super)
         self.client.post(reverse('platform_restaurant_create'), self.payload())
         self.client.logout()
         r = self.client.post(reverse('login'), {'username': 'admin_cafe', 'password': 'Clave-Muy-Segura-9'}, follow=True)
         self.assertEqual(r.redirect_chain[-1][0], reverse('dashboard'))
-        self.assertEqual(self.client.get(reverse('tables')).context['tables'].count(), 4)
+        self.assertEqual(len(self.client.get(reverse('tables')).context['tables']), 4)
         self.assertEqual(api_as(User.objects.get(username='admin_cafe')).get('/api/orders/').data['count'], 0)
         self.assertEqual(self.client.get(reverse('platform_restaurants')).status_code, 403)
 
@@ -90,7 +90,7 @@ class PlatformTests(TestCase):
 
     def test_status_change_requires_superuser_post_and_valid_value(self):
         url = reverse('platform_restaurant_status', args=[self.a['restaurant'].id])
-        self.client.force_login(self.a['users']['admin'])
+        self.client.force_login(self.a['users']['manager'])
         self.assertEqual(self.client.post(url, {'status': 'suspended'}).status_code, 403)
         self.client.force_login(self.super)
         self.assertEqual(self.client.get(url).status_code, 405)
@@ -110,7 +110,7 @@ class SeedDemoTests(TestCase):
         self.assertEqual(RestaurantAccount.objects.filter(status='active').count(), 3)
         for restaurant in RestaurantAccount.objects.all():
             roles = set(restaurant.users.values_list('role', flat=True))
-            self.assertEqual(roles, {'admin', 'manager', 'cashier', 'waiter', 'chef'})
+            self.assertEqual(roles, {'manager', 'cashier', 'waiter', 'chef'})
             self.assertGreaterEqual(restaurant.users.filter(role='waiter').count(), 2)
             self.assertGreater(Payment.objects.filter(restaurant=restaurant).count(), 20)
             statuses = set(Order.objects.filter(restaurant=restaurant).values_list('status', flat=True))
@@ -121,7 +121,7 @@ class SeedDemoTests(TestCase):
 
     def test_every_demo_user_can_log_in_and_land_on_its_panel(self):
         self.run_seed()
-        landing = {'admin': 'dashboard', 'manager': 'dashboard', 'cashier': 'cashier_panel', 'waiter': 'waiter_panel', 'chef': 'kitchen'}
+        landing = {'manager': 'dashboard', 'cashier': 'cashier_panel', 'waiter': 'waiter_panel', 'chef': 'kitchen'}
         for user in User.objects.exclude(is_superuser=True):
             self.client.logout()
             r = self.client.post(reverse('login'), {'username': user.username, 'password': 'Bemba2026*'}, follow=True)

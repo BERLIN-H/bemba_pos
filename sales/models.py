@@ -18,6 +18,9 @@ class Order(models.Model):
     branch = models.ForeignKey('restaurant.Branch', on_delete=models.PROTECT, related_name='orders', blank=True, null=True)
     table = models.ForeignKey('restaurant.DiningTable', on_delete=models.PROTECT, related_name='orders')
     waiter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='orders')
+    customer_name = models.CharField(max_length=120, blank=True)
+    customer_document = models.CharField(max_length=40, blank=True)
+    customer_phone = models.CharField(max_length=30, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN)
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     tax = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -48,11 +51,8 @@ class Order(models.Model):
         from inventory.models import Ingredient, StockMovement
 
         order = Order.objects.select_for_update().get(pk=self.pk)
-        if order.inventory_consumed:
-            self.inventory_consumed = True
-            return False
-
-        for item in order.items.select_related('menu_item').prefetch_related('menu_item__recipe'):
+        changed = False
+        for item in order.items.select_for_update().filter(inventory_consumed=False).select_related('menu_item').prefetch_related('menu_item__recipe'):
             for recipe_item in item.menu_item.recipe.all():
                 ingredient = Ingredient.objects.select_for_update().get(pk=recipe_item.ingredient_id)
                 quantity = recipe_item.quantity * item.quantity
@@ -66,10 +66,14 @@ class Order(models.Model):
                     note=f'Consumo automático pedido #{self.id}',
                     created_by=self.waiter,
                 )
+            item.inventory_consumed = True
+            item.save(update_fields=['inventory_consumed'])
+            changed = True
 
-        Order.objects.filter(pk=self.pk).update(inventory_consumed=True)
-        self.inventory_consumed = True
-        return True
+        consumed = not order.items.filter(inventory_consumed=False).exists()
+        Order.objects.filter(pk=self.pk).update(inventory_consumed=consumed)
+        self.inventory_consumed = consumed
+        return changed
 
     def __str__(self):
         return f'Pedido #{self.pk}'
@@ -83,6 +87,8 @@ class OrderItem(models.Model):
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     notes = models.CharField(max_length=255, blank=True)
     sent_to_kitchen = models.BooleanField(default=False)
+    kitchen_delivered = models.BooleanField(default=False)
+    inventory_consumed = models.BooleanField(default=False)
 
     @property
     def line_subtotal(self):

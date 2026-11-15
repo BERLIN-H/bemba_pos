@@ -86,23 +86,32 @@ def confirm_customer_order(customer_order, user):
     if shortages:
         raise CustomerOrderError('No hay stock suficiente: ' + '; '.join(shortages))
 
-    table = locked.table
+    table = DiningTable.objects.select_for_update().select_related('zone__branch').get(pk=locked.table_id)
     branch = table.zone.branch
-    order = Order.objects.create(
-        waiter=user,
-        restaurant=locked.restaurant or getattr(branch, 'restaurant', None),
-        branch=branch,
-        table=table,
-        status=Order.Status.SENT,
-        notes=f'Pedido del cliente por QR. {locked.note}'.strip(),
-    )
+    active_statuses = [Order.Status.OPEN, Order.Status.SENT, Order.Status.PREPARING, Order.Status.READY, Order.Status.SERVED]
+    order = Order.objects.select_for_update().filter(table=table, status__in=active_statuses).order_by('-created_at').first()
+    if order:
+        order.status = Order.Status.SENT
+        order.notes = '\n'.join(filter(None, [order.notes, f'Pedido del cliente por QR. {locked.note}'.strip()]))
+        order.save(update_fields=['status', 'notes'])
+    else:
+        order = Order.objects.create(
+            waiter=user,
+            restaurant=locked.restaurant or getattr(branch, 'restaurant', None),
+            branch=branch,
+            table=table,
+            status=Order.Status.SENT,
+            notes=f'Pedido del cliente por QR. {locked.note}'.strip(),
+        )
     for item in locked.items.select_related('menu_item'):
         OrderItem.objects.create(
             order=order, menu_item=item.menu_item, quantity=item.quantity, notes=item.notes,
             unit_price=item.menu_item.price, tax_rate=item.menu_item.tax_rate, sent_to_kitchen=True,
         )
     order.recalculate()
-    KitchenTicket.objects.get_or_create(order=order)
+    ticket, _ = KitchenTicket.objects.get_or_create(order=order)
+    ticket.status = KitchenTicket.Status.PENDING
+    ticket.save(update_fields=['status', 'updated_at'])
 
     table.status = DiningTable.Status.OCCUPIED
     table.save(update_fields=['status'])

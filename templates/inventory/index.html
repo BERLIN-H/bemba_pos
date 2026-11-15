@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load money %}
 {% block title %}Inventario | Bemba{% endblock %}
 {% block heading %}Inventario{% endblock %}
 {% block content %}
@@ -9,14 +10,21 @@
   <small class="inventory-search-status text-muted" aria-live="polite"></small>
 </section>
 
-{% if request.user.is_superuser or request.user.role == 'admin' or request.user.role == 'manager' %}
+{% if request.user.is_superuser or request.user.role == 'manager' or request.user.role == 'restaurant_admin' %}
 <section class="panel mb-3 alert alert-info">
   <div>
     <strong>Consumo automático activado</strong>
-    <p class="mb-0">Los ingredientes se descuentan automáticamente cuando un pedido se paga. Los movimientos de stock de tipo <strong>Venta</strong> reflejan ese consumo.</p>
+    <p class="mb-0">Los ingredientes de cada receta se descuentan cuando cocina empieza a preparar; el cobro también asegura el descuento si el pedido no pasó por cocina.</p>
   </div>
   <div class="mt-2">
     <strong>{{ sale_movements_count }}</strong> movimiento(s) de venta registrados.
+  </div>
+</section>
+
+<section class="panel mb-3">
+  <div class="d-flex align-items-center justify-content-between gap-3">
+    <div><strong>Menú de tu restaurante</strong><p class="small text-muted mb-0">Administra categorías, precios y cantidades de ingredientes por receta.</p></div>
+    <a class="btn btn-dark" href="{% url 'inventory_menu' %}">Administrar menú</a>
   </div>
 </section>
 {% endif %}
@@ -112,7 +120,7 @@
     </div>
     <div>
       <small>Mínimo: {{ ingredient.min_stock }}</small>
-      <strong>${{ ingredient.unit_cost }}</strong>
+      <strong>{{ ingredient.unit_cost|money }}</strong>
     </div>
     {% if ingredient.current_stock <= ingredient.min_stock %}
     <div>

@@ -15,6 +15,8 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.conf import settings
+from django.conf.urls.static import static
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -23,7 +25,7 @@ from accounts.api import UserViewSet
 from inventory.api import CategoryViewSet, IngredientViewSet, MenuItemViewSet, StockMovementViewSet
 from restaurant.api import BranchViewSet, DiningTableViewSet, RestaurantAccountViewSet, SubscriptionPlanViewSet, ZoneViewSet
 from restaurant.public import public_order_create, public_request, public_status
-from restaurant.platform import platform_restaurant_create, platform_restaurant_status, platform_restaurants
+from restaurant import platform as p
 from restaurant.views import public_menu
 from sales.api import OrderViewSet, PaymentViewSet
 
@@ -43,9 +45,34 @@ router.register('payments', PaymentViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('plataforma/', platform_restaurants, name='platform_restaurants'),
-    path('plataforma/nuevo/', platform_restaurant_create, name='platform_restaurant_create'),
-    path('plataforma/<int:pk>/estado/', platform_restaurant_status, name='platform_restaurant_status'),
+    path('plataforma/', p.platform_dashboard, name='platform_restaurants'),
+    path('plataforma/restaurantes/', p.platform_restaurants, name='platform_restaurant_list'),
+    path('plataforma/nuevo/', p.platform_restaurant_create, name='platform_restaurant_create'),
+    path('plataforma/restaurantes/<int:pk>/editar/', p.platform_restaurant_edit, name='platform_restaurant_edit'),
+    path('plataforma/<int:pk>/estado/', p.platform_restaurant_status, name='platform_restaurant_status'),
+    path('plataforma/<int:pk>/plan/', p.platform_restaurant_plan, name='platform_restaurant_plan'),
+    path('plataforma/sedes/', p.platform_branches, name='platform_branches'),
+    path('plataforma/planes/', p.platform_plans, name='platform_plans'),
+    path('plataforma/planes/<int:pk>/estado/', p.platform_plan_toggle, name='platform_plan_toggle'),
+    path('plataforma/pagos/', p.platform_payments, name='platform_payments'),
+    path('plataforma/pagos/crear/', p.platform_payment_create, name='platform_payment_create'),
+    path('plataforma/pagos/<int:pk>/estado/', p.platform_payment_status, name='platform_payment_status'),
+    path('plataforma/usuarios/', p.platform_users, name='platform_users'),
+    path('plataforma/usuarios/<int:pk>/estado/', p.platform_user_status, name='platform_user_status'),
+    path('plataforma/usuarios/<int:pk>/rol/', p.platform_user_role, name='platform_user_role'),
+    path('plataforma/roles/', p.platform_roles, name='platform_roles'),
+    path('plataforma/soporte/', p.platform_support, name='platform_support'),
+    path('plataforma/soporte/crear/', p.platform_support_create, name='platform_support_create'),
+    path('plataforma/notificaciones/', p.platform_notifications, name='platform_notifications'),
+    path('plataforma/configuracion/', p.platform_settings, name='platform_settings'),
+    path('plataforma/integraciones/', p.platform_integrations, name='platform_integrations'),
+    path('plataforma/integraciones/<int:pk>/estado/', p.platform_integration_toggle, name='platform_integration_toggle'),
+    path('plataforma/auditoria/', p.platform_audit, name='platform_audit'),
+    path('plataforma/sesiones/', p.platform_sessions, name='platform_sessions'),
+    path('plataforma/sesiones/<str:key>/revocar/', p.platform_session_revoke, name='platform_session_revoke'),
+    path('plataforma/respaldos/', p.platform_backups, name='platform_backups'),
+    path('plataforma/respaldos/crear/', p.platform_backup_create, name='platform_backup_create'),
+    path('plataforma/respaldos/<str:filename>/', p.platform_backup_download, name='platform_backup_download'),
     path('m/<str:token>/', public_menu, name='public_menu'),
     path('m/<str:token>/pedido/', public_order_create, name='public_order'),
     path('m/<str:token>/llamado/', public_request, name='public_request'),
@@ -61,3 +88,6 @@ urlpatterns = [
     path('api/auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

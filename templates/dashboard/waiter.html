@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load money %}
 {% block title %}Panel de mesero | Bemba{% endblock %}
 {% block heading %}Panel de mesero{% endblock %}
 {% block content %}
@@ -40,7 +41,7 @@
         <td>#{{ order.id }}</td>
         <td>Mesa {{ order.table.number }}</td>
         <td><span class="status-pill status-pill--{{ order.status }}">{{ order.get_status_display }}</span></td>
-        <td class="text-end">${{ order.total|floatformat:0 }}</td>
+        <td class="text-end">{{ order.total|money }}</td>
         <td class="text-end"><a class="btn btn-sm btn-outline-dark" href="{% url 'checkout' order.id %}">Abrir</a></td>
       </tr>
       {% empty %}

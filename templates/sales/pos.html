@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load money %}
 {% block title %}POS | Bemba{% endblock %}
 {% block heading %}Punto de venta{% endblock %}
 {% block content %}
@@ -25,7 +26,7 @@
       <button class="menu-item" data-id="{{ item.id }}" data-price="{{ item.price }}" data-category="{{ item.category.id }}" type="button">
         <span>{{ item.category.name }}</span>
         <strong>{{ item.name }}</strong>
-        <small>${{ item.price }}</small>
+        <small>{{ item.price|money }}</small>
       </button>
       {% empty %}
       <p>No hay productos disponibles.</p>
@@ -37,9 +38,15 @@
     <div class="panel-title">Ticket activo</div>
     <select id="table-select" class="form-select mb-3">
       {% for table in tables %}
-      <option value="{{ table.id }}">Mesa {{ table.number }} - {{ table.zone.name }}</option>
+      <option value="{{ table.id }}" data-customer-name="{{ table.active_order.customer_name|default:'' }}" data-customer-document="{{ table.active_order.customer_document|default:'' }}" data-customer-phone="{{ table.active_order.customer_phone|default:'' }}">Mesa {{ table.number }} - {{ table.zone.name }}{% if table.active_order %} · Cuenta #{{ table.active_order.id }} abierta{% endif %}</option>
       {% endfor %}
     </select>
+    <label for="customer-name" class="form-label">Nombre del cliente <span class="text-muted">(opcional)</span></label>
+    <input id="customer-name" class="form-control mb-3" maxlength="120" placeholder="¿A nombre de quién va la cuenta?">
+    <div class="row gx-2">
+      <div class="col"><input id="customer-document" class="form-control mb-3" maxlength="40" placeholder="Documento (opcional)"></div>
+      <div class="col"><input id="customer-phone" class="form-control mb-3" maxlength="30" placeholder="Teléfono (opcional)"></div>
+    </div>
 
     <div class="hold-actions">
       <button id="save-hold" class="btn btn-outline-secondary w-100" type="button">Guardar en espera</button>
@@ -49,15 +56,19 @@
     <div id="cart" class="cart-empty">Selecciona productos para crear el pedido.</div>
     <div id="cart-summary" class="cart-summary"></div>
     <div id="pos-message" class="small mt-3"></div>
-    <button id="send-kitchen" class="btn btn-dark w-100 mt-3" type="button">Enviar a cocina</button>
+    {% if request.user.is_superuser or request.user.role == 'manager' or request.user.role == 'restaurant_admin' or request.user.role == 'cashier' or request.user.role == 'waiter' %}
+    <button id="send-kitchen" class="btn btn-dark w-100 mt-3" type="button">Enviar pedido a cocina</button>
+    {% else %}
+    <p class="small text-muted mt-3">El mesero es quien envía los pedidos a cocina.</p>
+    {% endif %}
 
     <hr>
     <div class="panel-title">Pedidos abiertos</div>
     <div class="open-orders">
       {% for order in open_orders %}
       <a href="{% url 'checkout' order.id %}">
-        <span>#{{ order.id }} - Mesa {{ order.table.number }}</span>
-        <strong>${{ order.total }}</strong>
+        <span>#{{ order.id }} - Mesa {{ order.table.number }}{% if order.customer_name %} · {{ order.customer_name }}{% endif %}</span>
+        <strong>{{ order.total|money }}</strong>
       </a>
       {% empty %}
       <small class="text-muted">No hay pedidos pendientes de cobro.</small>

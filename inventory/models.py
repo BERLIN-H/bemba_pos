@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.conf import settings
+from django.core.validators import FileExtensionValidator
 from django.core.mail import send_mail
 from django.db import models
 from django.utils import timezone
@@ -55,6 +56,7 @@ class MenuItem(models.Model):
     description = models.TextField(blank=True)
     price = models.DecimalField(max_digits=12, decimal_places=2)
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('0.00'))
+    image = models.ImageField(upload_to='restaurants/menu/', blank=True, validators=[FileExtensionValidator(['png', 'jpg', 'jpeg', 'webp'])])
     image_url = models.URLField(blank=True)
     is_available = models.BooleanField(default=True)
     is_kitchen_item = models.BooleanField(default=True)

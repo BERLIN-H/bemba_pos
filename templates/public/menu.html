@@ -1,4 +1,4 @@
-{% load humanize %}<!doctype html>
+{% load humanize money %}<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
@@ -58,12 +58,12 @@
       <h2>{{ category.name }}</h2>
       {% for item in category.available_items %}
       <article class="dish">
-        {% if item.image_url %}<img src="{{ item.image_url }}" alt="{{ item.name }}" loading="lazy">{% endif %}
+        {% if item.image or item.image_url %}<img src="{% if item.image %}{{ item.image.url }}{% else %}{{ item.image_url }}{% endif %}" alt="{{ item.name }}" loading="lazy">{% endif %}
         <div class="flex-grow-1">
           <h3>{{ item.name }}</h3>
           {% if item.description %}<p>{{ item.description }}</p>{% endif %}
         </div>
-        <div class="price">${{ item.price|floatformat:0|intcomma }}</div>
+        <div class="price">{{ item.price|money }}</div>
         <button type="button" class="add-btn" aria-label="Agregar {{ item.name }}" data-id="{{ item.id }}" data-name="{{ item.name }}" data-price="{{ item.price|stringformat:'s' }}">+</button>
       </article>
       {% endfor %}
