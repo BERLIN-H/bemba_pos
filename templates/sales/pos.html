@@ -56,7 +56,7 @@
     <div id="cart" class="cart-empty">Selecciona productos para crear el pedido.</div>
     <div id="cart-summary" class="cart-summary"></div>
     <div id="pos-message" class="small mt-3"></div>
-    {% if request.user.is_superuser or request.user.role == 'waiter' %}
+    {% if request.user.is_superuser or request.user.role == 'manager' or request.user.role == 'restaurant_admin' or request.user.role == 'cashier' or request.user.role == 'waiter' %}
     <button id="send-kitchen" class="btn btn-dark w-100 mt-3" type="button">Enviar pedido a cocina</button>
     {% else %}
     <p class="small text-muted mt-3">El mesero es quien envía los pedidos a cocina.</p>

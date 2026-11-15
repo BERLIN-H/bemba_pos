@@ -20,6 +20,8 @@
       <a href="{% url 'dashboard' %}">Dashboard</a>
       {% elif request.user.is_superuser %}
       <a href="{% url 'dashboard' %}">Resumen global</a>
+      {% elif request.user.role == 'chef' %}
+      <a href="{% url 'kitchen' %}">Cocina</a>
       {% else %}
       <a href="{% url 'home' %}">Mi panel</a>
       {% endif %}
@@ -30,7 +32,7 @@
       <a href="{% url 'requests_board' %}">Solicitudes{% if requests_badge %} <span class="badge bg-danger">{{ requests_badge }}</span>{% endif %}</a>
       {% endif %}
 
-      {% if request.user.is_superuser or request.user.role == 'manager' or request.user.role == 'restaurant_admin' or request.user.role == 'chef' %}
+      {% if request.user.is_superuser or request.user.role == 'manager' or request.user.role == 'restaurant_admin' %}
       {% if request.user.is_superuser or not restaurant_modules or restaurant_modules.kitchen_kds %}<a href="{% url 'kitchen' %}">Cocina</a>{% endif %}
       {% endif %}
 

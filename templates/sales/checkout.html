@@ -6,15 +6,16 @@
 {% block content %}
 <section class="checkout-layout">
   {% csrf_token %}
-  <div class="panel">
-    <div class="panel-title">Cuenta #{{ order.id }} - Mesa {{ order.table.number }}{% if order.customer_name %} · {{ order.customer_name }}{% endif %}</div>
+  <div class="panel invoice-panel">
+    <div class="invoice-header"><div><span class="invoice-kicker">BEMBA · CUENTA DE CONSUMO</span><h2>Factura de venta</h2><p>Mesa {{ order.table.number }} · {{ order.created_at|date:'d/m/Y · g:i a' }}</p></div><span class="invoice-status invoice-status--{{ order.status }}">{{ order.get_status_display }}</span></div>
+    <div class="invoice-customer"><span>Cuenta #{{ order.id }}</span><strong>{{ order.customer_name|default:'Cliente general' }}</strong>{% if order.customer_document or order.customer_phone %}<small>{% if order.customer_document %}{{ order.customer_document }}{% endif %}{% if order.customer_phone %} · {{ order.customer_phone }}{% endif %}</small>{% endif %}</div>
     {% if order.customer_document or order.customer_phone %}<p class="text-muted">{% if order.customer_document %}Documento: {{ order.customer_document }}{% endif %}{% if order.customer_phone %} · Teléfono: {{ order.customer_phone }}{% endif %}</p>{% endif %}
-    <table class="table align-middle">
+    <table class="table align-middle invoice-table">
       <thead><tr><th>Producto</th><th>Cantidad</th><th class="text-end">Subtotal</th></tr></thead>
       <tbody>
         {% for item in order.items.all %}
         <tr>
-          <td>{{ item.menu_item.name }}</td>
+          <td><strong>{{ item.menu_item.name }}</strong>{% if item.notes %}<small class="invoice-item-note">{{ item.notes }}</small>{% endif %}</td>
           <td>{{ item.quantity }}</td>
           <td class="text-end">{{ item.line_subtotal|money }}</td>
         </tr>
@@ -26,8 +27,8 @@
     <div class="receipt-row total"><span>Total</span><strong>{{ order.total|money }}</strong></div>
   </div>
 
-  <aside class="panel">
-    <div class="panel-title">Registrar pago</div>
+  <aside class="panel payment-panel">
+    <div class="panel-title">{% if order.payment %}Pago registrado{% else %}Finalizar cuenta{% endif %}</div>
     {% if order.payment %}
     <div class="alert alert-success">Este pedido ya fue pagado.</div>
     <a class="btn btn-dark w-100" href="{% url 'ticket' order.id %}">Ver ticket</a>

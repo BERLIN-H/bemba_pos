@@ -251,8 +251,8 @@ class OrderViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def send_to_kitchen(self, request, pk=None):
         order = self.get_object()
-        if not request.user.is_superuser and request.user.role != 'waiter':
-            return Response({'detail': 'Solo el mesero puede enviar pedidos a cocina.'}, status=403)
+        if not request.user.is_superuser and request.user.role not in ('manager', 'restaurant_admin', 'cashier', 'waiter'):
+            return Response({'detail': 'No tienes permiso para enviar pedidos a cocina.'}, status=403)
         if order.status in (Order.Status.PAID, Order.Status.CANCELLED):
             return Response({'detail': 'La cuenta ya estÃ¡ cerrada.'}, status=400)
         unsent_items = order.items.filter(sent_to_kitchen=False)
